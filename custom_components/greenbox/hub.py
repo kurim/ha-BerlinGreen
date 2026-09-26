@@ -1,6 +1,7 @@
 """Garten-Logik für alle GreenBoxen: lokaler Speicher, Katalog, optionale Cloud (nur lesend), Ansicht je Box, Dienste."""
 from __future__ import annotations
 
+import asyncio
 import copy
 import json
 from datetime import timedelta
@@ -17,7 +18,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from . import catalog_build, local
+from . import catalog_build, local, photos
 from .api import ApiError, ApiKeyError, AuthError, GreenboxCloud
 from .garden import build_box, parse_time
 from .library import GardenError, Library
@@ -41,7 +42,10 @@ class Garden:
         self.catalog_store: Store = Store(hass, 1, "greenbox_catalog")
         self.local: dict[str, Any] = {"boxes": {}}
         self.lib: Library = Library.empty()
-        self._catalog_tried = False
+        self._catalog_attempts = 0  # automatische Versuche, den Katalog zu laden (Fehler dürfen sich wiederholen, aber nicht endlos)
+        self.photo_dir = Path(hass.config.path(photos.PHOTO_DIR))
+        self.photo_names: set[str] = set()
+        self._photo_task: asyncio.Task | None = None
         self.cloud: GreenboxCloud | None = None
         self.raw_cloud: dict[str, dict] = {}
         self._reauth_started = False
@@ -53,8 +57,10 @@ class Garden:
         self.local = await self.store.async_load() or {"boxes": {}}
         self.local.setdefault("boxes", {})
         self.lib = await self._load_catalog()
+        self.photo_names = await self.hass.async_add_executor_job(photos.existing, self.photo_dir)
         self.configure()
         await self.coordinator.async_refresh()
+        self.start_photo_sync()  # Fotos des vorhandenen Katalogs im Hintergrund nachladen
 
     async def _load_catalog(self) -> Library:
         """Katalog: zuerst der gespeicherte (aus der Cloud geladene), dann die Datei im HA-Ordner, sonst leer."""
@@ -70,6 +76,28 @@ class Garden:
         except (OSError, ValueError) as err:
             _LOGGER.warning("Katalogdatei %s nicht lesbar: %s", path, err)
             return None
+
+    # --- Fotos (lokal zwischengespeichert, siehe photos.py) -----------------------------------------
+    def local_photo(self, url: str | None) -> str | None:
+        """Lokale Adresse eines Fotos, wenn es schon heruntergeladen ist; sonst die Originaladresse."""
+        if url and photos.file_name(url) in self.photo_names:
+            return f"{photos.PHOTO_URL}/{photos.file_name(url)}"
+        return url
+
+    def start_photo_sync(self) -> None:
+        if self.lib.is_empty or (self._photo_task and not self._photo_task.done()):
+            return
+        self._photo_task = self.hass.async_create_background_task(self.async_sync_photos(), "greenbox photos")
+
+    async def async_sync_photos(self) -> tuple[int, int]:
+        urls = photos.collect_urls(self.lib.data)
+        result = await photos.sync(async_get_clientsession(self.hass), self.photo_dir, urls, self.hass.async_add_executor_job)
+        self.photo_names = await self.hass.async_add_executor_job(photos.existing, self.photo_dir)
+        if result[0]:
+            self.refresh()
+        if result[1]:
+            _LOGGER.warning("%d Foto(s) konnten nicht geladen werden (die Karte zeigt dafür die Originaladresse)", result[1])
+        return result
 
     async def async_update_catalog(self, refresh: bool = True) -> int:
         """Katalog aus dem verbundenen Cloud-Konto laden und dauerhaft speichern. Liefert die Zahl der Pflanzen."""
@@ -89,6 +117,7 @@ class Garden:
         self.lib = Library(data, self.lib.allow_cannabis)
         if refresh:
             self.refresh()
+        self.start_photo_sync()
         return len(data["plants"])
 
     def entries(self) -> list[ConfigEntry]:
@@ -138,8 +167,8 @@ class Garden:
             except ApiError as err:
                 _LOGGER.warning("Cloud nicht erreichbar, verwende letzten Stand: %s", err)
             else:
-                if self.lib.is_empty and not self._catalog_tried:  # einmal automatisch versuchen
-                    self._catalog_tried = True
+                if self.lib.is_empty and self._catalog_attempts < 3:  # ohne Katalog automatisch (bis zu dreimal) versuchen
+                    self._catalog_attempts += 1
                     try:
                         await self.async_update_catalog(refresh=False)
                     except GardenError as err:
@@ -161,7 +190,7 @@ class Garden:
                 shape, source = self.raw_cloud[key], "cloud"
             else:
                 shape, source = local.to_cloud_shape(key, local.new_box(ble.get(key, key))), "local"
-            view = build_box(shape, now, self.language)
+            view = build_box(shape, now, self.language, self.local_photo)
             view.update(source=source, box_key=key, ble=key in ble, cloud_id=(self.raw_cloud.get(key) or {}).get("id"))
             out[key] = view
         return out

@@ -111,6 +111,12 @@ const optByText = (t, sel, text) => t.$$(`${sel} option`).find((o) => o.textCont
   t = make(stPkg, { style: "tiles", microgreen_slots: 3 }); ok(t.$$(".slot").length === 8 + 3, "tiles + microgreen_slots: 3");
   t = make({ state: "1", attributes: { ...stPkg.attributes, slots: stPkg.attributes.slots.map((x, i) => i === 0 ? { ...x, image: "https://example.com/x.jpg" } : x) } }, { show_images: true });
   ok(t.$(".pot .face img").getAttribute("src") === "https://example.com/x.jpg", "show_images: Foto rund im Topf");
+  t = make({ state: "1", attributes: { ...stPkg.attributes, slots: stPkg.attributes.slots.map((x, i) => i === 0 ? { ...x, image: "/greenbox_photos/abc123.png" } : x) } }, { show_images: true });
+  ok(t.$(".pot .face .glyph") && !t.$(".slot[data-slot=\"0\"] .face img") && t.$(".pot .face .glyph").getAttribute("style") === "--m:url('/greenbox_photos/abc123.png')",
+    "lokales Bild: Maske in der Phasenfarbe statt <img> (auf hellem und dunklem Theme lesbar)");
+  ok(/mask:\s*var\(--m\)/.test(t.el.shadowRoot.innerHTML) && /background:\s*var\(--c\)/.test(t.el.shadowRoot.innerHTML.replace(/\s+/g, " ")), "Stil färbt die Maske mit --c");
+  t = make({ state: "1", attributes: { ...stPkg.attributes, slots: stPkg.attributes.slots.map((x, i) => i === 0 ? { ...x, image: "/greenbox_photos/\"><script>x</script>.png" } : x) } }, { show_images: true });
+  ok(!t.$(".pot .face script"), "Bildadresse wird maskiert");
   const icons = make(stPkg).$$("ha-icon").map((e) => e.getAttribute("icon")); ok(icons.includes("mdi:seed-outline") && icons.includes("mdi:plus"), "Icons je Phase");
   t = make(stEmpty, { editable: false }); ok(t.$$(".editable").length === 0 && !t.$('button[data-action="addmicro"]'), "editable: false -> keine Bedienung");
 

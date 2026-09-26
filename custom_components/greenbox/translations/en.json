@@ -171,6 +171,9 @@
     "button": {
       "sync_time": {
         "name": "Synchronize clock"
+      },
+      "update_catalog": {
+        "name": "Update catalog and photos"
       }
     }
   },
@@ -317,7 +320,7 @@
     },
     "update_catalog": {
       "name": "Update catalog",
-      "description": "Load the plant library from the connected cloud account and store it.",
+      "description": "Load the plant library and its photos from the connected cloud account and store them locally.",
       "fields": {}
     }
   }

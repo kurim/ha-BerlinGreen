@@ -65,6 +65,12 @@ Cloud-Konto verbindest (oder `greenbox.update_catalog` ausführst), und in Home 
 **eigenem Zeitplan** und frei getippten Pflanzennamen pflanzen. Alternativ legst du eine `greenbox_catalog.json` neben die `configuration.yaml`,
 siehe [`tools/`](https://github.com/kurim/ha-BerlinGreen/blob/main/tools/README.md).
 
+**Fotos:** Die Pflanzenzeichnungen werden in den Ordner `greenbox_photos/` deines Home-Assistant-Ordners geladen (nach einem Neustart auch im Hintergrund),
+in kleine PNGs mit durchsichtigem Hintergrund umgewandelt und als Maske genutzt. So färbt die Karte sie auf jedem Theme in der Phasenfarbe ein
+(`show_images: true`). Der Button **Katalog und Fotos aktualisieren** am Cloud-Konto (oder `greenbox.update_catalog`) lädt alles neu. Die Fotos sind nie
+Teil dieses Repositories; lässt sich eines nicht laden, nutzt die Karte weiter die Originaladresse. Nach einem fehlgeschlagenen Start wird der
+Katalog automatisch bis zu dreimal erneut geladen.
+
 ## Lovelace-Karte
 ```yaml
 type: custom:greenbox-garden-card
@@ -85,7 +91,7 @@ Slots zählen ab 1. `box` ist bei nur einer Box optional (sonst Name oder Adress
 | `greenbox.remove_package` | Ganzes Paket entfernen |
 | `greenbox.plant_microgreen` / `clear_microgreen` | Microgreens-Modul (Slots 1–6); Namen ohne Katalogeintrag brauchen `sprout_days` und `growth_days` |
 | `greenbox.import_from_cloud` | Bepflanzung der App für eine Box in Home Assistant übernehmen |
-| `greenbox.update_catalog` | Pflanzenbibliothek aus dem Cloud-Konto neu laden |
+| `greenbox.update_catalog` | Pflanzenbibliothek und Fotos aus dem Cloud-Konto neu laden |
 
 Regeln wie in der App: Ein Mix hat einen gemeinsamen Zeitplan und erlaubt nur seine eigenen Pflanzen; solange das Microgreens-Modul benutzt wird, sind für Pflanzen nur die Slots 1, 2, 5 und 6 frei.
 

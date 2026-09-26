@@ -78,6 +78,7 @@ class Hass:
         self.ws, self.js, self.http = [], [], Http()
 
     async def async_add_executor_job(self, f, *a): return f(*a)
+    def async_create_background_task(self, coro, name): return asyncio.ensure_future(coro)
 
 
 class Call:
@@ -134,7 +135,7 @@ async def main():
     await asyncio.gather(gb.async_setup_entry(h, e1), gb.async_setup_entry(h, e2))
     g = h.data["greenbox"]["_garden"]
     check(h.services.reg == 8 and len(h.ws) == 1 and sorted(FakeDevice.started) == sorted([MAC1, MAC2]), "gleichzeitiger Start: ein Garten, 8 Dienste einmal, 1 Websocket-Befehl, 2 Geräte")
-    check(len(h.http.paths) == 1 and h.http.paths[0][0] == "/greenbox_static" and h.http.paths[0][1].endswith("frontend") and h.js == ["/greenbox_static/greenbox-garden-card.js?v=9.9.9"],
+    check(len(h.http.paths) == 2 and h.http.paths[0][0] == "/greenbox_static" and h.http.paths[0][1].endswith("frontend") and h.http.paths[1][0] == "/greenbox_photos" and h.http.paths[1][1].endswith("greenbox_photos") and h.js == ["/greenbox_static/greenbox-garden-card.js?v=9.9.9"],
           "Karte wird automatisch bereitgestellt (einmal, mit Version gegen Cache)")
     check((PKG := _stubs.PKG / "frontend" / "greenbox-garden-card.js").is_file(), "Kartendatei liegt in der Integration")
     check(all("time" in p and "sensor" in p for _, p in h.config_entries.forwarded) and set(g.coordinator.data) == {MAC1, MAC2}
@@ -168,7 +169,7 @@ async def main():
     ce = Entry({"cloud": True, "email": "a@b.de", "api_key": FAKE_KEY, "refresh_token": "T1"}, "Berlin Green Cloud")
     h.config_entries.entries.append(ce)
     await gb.async_setup_entry(h, ce)
-    check(h.config_entries.forwarded[-1] == (ce.entry_id, ["sensor"]) and set(g.coordinator.data) == {MAC1, MAC2, CLOUD_ONLY}, "Cloud-Eintrag: nur Sensoren; Boxen des Kontos kommen dazu")
+    check(h.config_entries.forwarded[-1] == (ce.entry_id, ["button", "sensor"]) and set(g.coordinator.data) == {MAC1, MAC2, CLOUD_ONLY}, "Cloud-Eintrag: Katalog-Button und Sensoren; Boxen des Kontos kommen dazu")
     check(g.keys_for(ce) == [CLOUD_ONLY] and g.keys_for(e1) == [MAC1], "der Cloud-Eintrag legt Gärten nur für Boxen ohne Bluetooth an")
     cloud = g.cloud
     check(cloud.api_key == FAKE_KEY, "der eingetragene API-Schlüssel wird an die Cloud-Verbindung übergeben")
@@ -236,7 +237,7 @@ async def main():
     await gb.async_setup_entry(h, e3)
     g4 = h.data["greenbox"]["_garden"]
     check(g4 is not g and g4.coordinator.data[MAC1]["planted_count"] == 1 and not g4.lib.is_empty and h.services.reg == 16, "Neustart: Bepflanzung und Katalog bleiben erhalten, Dienste neu registriert")
-    check(len(h.http.paths) == 1 and len(h.js) == 1, "die Karte wird nicht doppelt registriert")
+    check(len(h.http.paths) == 2 and len(h.js) == 1, "Karte und Fotoordner werden nicht doppelt registriert")
     print("\n" + ("%d FEHLER" % fails if fails else "alle Tests ok"))
     sys.exit(1 if fails else 0)
 

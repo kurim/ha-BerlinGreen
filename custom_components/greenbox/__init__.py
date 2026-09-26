@@ -19,10 +19,11 @@ from homeassistant.loader import async_get_integration
 
 from .device import GreenBoxDevice
 from .hub import CONF_CLOUD, DOMAIN, Garden
+from .photos import PHOTO_URL
 
 _LOGGER = logging.getLogger(__name__)
 BOX_PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TIME]
-CLOUD_PLATFORMS = [Platform.SENSOR]
+CLOUD_PLATFORMS = [Platform.BUTTON, Platform.SENSOR]
 GARDEN = "_garden"
 LOCK = "_lock"
 FRONTEND = "_frontend"
@@ -51,15 +52,18 @@ SERVICES: dict[str, vol.Schema] = {
 }
 
 
-async def _register_card(hass: HomeAssistant, root: dict) -> None:
+async def _register_card(hass: HomeAssistant, root: dict, garden: Garden) -> None:
     """Die Karte gehört zur Integration und wird automatisch geladen (keine Ressource von Hand eintragen)."""
     if root.get(FRONTEND):
         return
     root[FRONTEND] = True  # Pfade lassen sich nur einmal registrieren, auch nicht nach einem Neuladen
     try:
         integration = await async_get_integration(hass, DOMAIN)
-        await hass.http.async_register_static_paths(
-            [StaticPathConfig(CARD_URL, str(Path(__file__).parent / "frontend"), cache_headers=False)])
+        await hass.async_add_executor_job(lambda: garden.photo_dir.mkdir(parents=True, exist_ok=True))
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(CARD_URL, str(Path(__file__).parent / "frontend"), cache_headers=False),
+            StaticPathConfig(PHOTO_URL, str(garden.photo_dir), cache_headers=True),  # Dateinamen sind Hashes der Adresse
+        ])
         add_extra_js_url(hass, f"{CARD_URL}/{CARD_FILE}?v={integration.version}")
     except Exception:  # noqa: BLE001 - die Steuerung darf nie an der Karte scheitern
         _LOGGER.exception("Karte konnte nicht registriert werden; Ressource /local/... von Hand eintragen")
@@ -87,7 +91,7 @@ async def _get_garden(hass: HomeAssistant) -> Garden:
             for name, schema in SERVICES.items():
                 hass.services.async_register(DOMAIN, name, make_handler(name), schema=schema)
             websocket_api.async_register_command(hass, ws_catalog)
-            await _register_card(hass, root)
+            await _register_card(hass, root, garden)
         return garden
 
 
@@ -136,4 +140,4 @@ def ws_catalog(hass: HomeAssistant, connection: websocket_api.ActiveConnection, 
     if garden is None:
         connection.send_error(msg["id"], "not_loaded", "Garten ist nicht eingerichtet")
         return
-    connection.send_result(msg["id"], garden.lib.public(garden.language))
+    connection.send_result(msg["id"], garden.lib.public(garden.language, garden.local_photo))

@@ -171,6 +171,9 @@
     "button": {
       "sync_time": {
         "name": "Uhrzeit synchronisieren"
+      },
+      "update_catalog": {
+        "name": "Katalog und Fotos aktualisieren"
       }
     }
   },
@@ -317,7 +320,7 @@
     },
     "update_catalog": {
       "name": "Katalog aktualisieren",
-      "description": "Pflanzenbibliothek aus dem verbundenen Cloud-Konto laden und speichern.",
+      "description": "Lädt die Pflanzenbibliothek und ihre Fotos aus dem verbundenen Cloud-Konto und speichert sie lokal.",
       "fields": {}
     }
   }

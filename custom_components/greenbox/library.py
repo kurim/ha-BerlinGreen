@@ -102,9 +102,11 @@ class Library:
         return next((m for m in self.mixes if m.get("own")), None)
 
     # --- Für die Card (klein halten) -----------------------------------------------
-    def public(self, lang: str = "de") -> dict[str, Any]:
+    def public(self, lang: str = "de", photo=None) -> dict[str, Any]:
+        photo = photo or (lambda url: url)
+
         def plant(p: dict) -> dict:
-            return {"id": p["id"], "name": self.label(p, lang), "photo": p.get("photo"), "own": p.get("own", False)}
+            return {"id": p["id"], "name": self.label(p, lang), "photo": photo(p.get("photo")), "own": p.get("own", False)}
 
         return {
             "mixes": [
@@ -113,7 +115,7 @@ class Library:
                 for m in self.mixes if self.visible_mix(m) or m.get("own")
             ],
             "plants": [plant(p) for p in self.plants.values() if self.visible_plant(p)],
-            "microgreens": [{"id": m["id"], "name": self.label(m, lang), "photo": m.get("photo"),
+            "microgreens": [{"id": m["id"], "name": self.label(m, lang), "photo": photo(m.get("photo")),
                              "sprout_days": m["sprout_days"], "growth_days": m["growth_days"]} for m in self.microgreens],
             "empty": self.is_empty,
         }

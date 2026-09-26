@@ -64,6 +64,11 @@ The catalog (mixes with their schedules, plants, microgreens) belongs to Berlin 
 for you when you connect the cloud account (or run `greenbox.update_catalog`) and stored in Home Assistant. Without it you can still plant with a
 **custom schedule** and free-typed plant names. You can also put a `greenbox_catalog.json` next to `configuration.yaml`; see [`tools/`](https://github.com/kurim/ha-BerlinGreen/blob/main/tools/README.md).
 
+**Photos:** the plant drawings are downloaded to `greenbox_photos/` in your Home Assistant folder (also in the background after a restart), converted to
+small PNGs with a transparent background and used as a mask, so the card can tint them in the phase colour on any theme (`show_images: true`). The
+button **Update catalog and photos** on the cloud account (or `greenbox.update_catalog`) reloads everything. Photos are never part of this repository;
+if one cannot be downloaded the card keeps using the original address. Catalog loading is retried automatically (up to three times) after a failed start.
+
 ## Lovelace card
 ```yaml
 type: custom:greenbox-garden-card
@@ -84,7 +89,7 @@ Slots count from 1. `box` is optional when you have a single box (name or addres
 | `greenbox.remove_package` | Remove the whole package |
 | `greenbox.plant_microgreen` / `clear_microgreen` | Microgreen module (slots 1–6); names not in the catalog need `sprout_days` and `growth_days` |
 | `greenbox.import_from_cloud` | Copy the app's planting for a box into Home Assistant |
-| `greenbox.update_catalog` | Reload the plant library from the cloud account |
+| `greenbox.update_catalog` | Reload the plant library and its photos from the cloud account |
 
 Rules like in the app: a mix has one shared schedule and only allows its own plants; while the microgreens module is used, only slots 1, 2, 5 and 6 are free for plants.
 

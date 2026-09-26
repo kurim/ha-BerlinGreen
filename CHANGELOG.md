@@ -3,6 +3,17 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.7.0] - 2026-09-26
+
+### Added
+- **Pflanzenfotos lokal:** Die Fotos des Katalogs werden in `greenbox_photos/` heruntergeladen, verkleinert und als PNG mit durchsichtigem Hintergrund
+  gespeichert (Strichzeichnung als Maske). Die Karte färbt sie bei `show_images: true` in der Phasenfarbe ein und ist so auf hellen und dunklen Themes
+  lesbar; ohne lokales Foto bleibt die Originaladresse. / Plant photos are cached locally as small transparent PNGs the card can tint.
+- Button **Katalog und Fotos aktualisieren** am Cloud-Konto (wie `greenbox.update_catalog`).
+
+### Changed
+- `greenbox.update_catalog` lädt auch die Fotos. Ein fehlgeschlagenes automatisches Laden des Katalogs wird bis zu dreimal wiederholt (bisher einmal).
+
 ## [0.6.0] - 2026-09-26
 
 ### Changed (Breaking für das Cloud-Konto / breaking for the cloud account)

@@ -3,7 +3,7 @@
  * Konfiguration (YAML):
  *   type: custom:greenbox-garden-card
  *   entity: sensor.salatbox_garten        # der "Garten"-Sensor der Box (auch im visuellen Editor wählbar)
- *   show_images: false                    # optional: Fotos statt Icons im Topf (Adressen liegen auf cdn.shopify.com)
+ *   show_images: false                    # optional: Pflanzenbilder statt Icons (nach „Katalog aktualisieren“ lokal gespeichert, in der Phasenfarbe gefärbt)
  *   microgreens: auto                     # auto | false (Microgreens-Modul ausblenden)
  *   editable: true                        # false = nur anzeigen
  *   style: app                            # app (wie die App) | tiles (einfache Kacheln, dann gilt columns)
@@ -80,10 +80,17 @@ class GreenboxGardenCard extends HTMLElement {
     return Math.max(0, Math.min(100, (s.days_elapsed / total) * 100));
   }
 
+  // Lokale Fotos (Strichzeichnung als PNG mit Transparenz) dienen als Maske und werden in der Phasenfarbe gefärbt -> auf hellen
+  // und dunklen Themes lesbar. Fremde Adressen (Fallback) bleiben normale Bilder.
+  _photo(url) {
+    if (url.startsWith("/greenbox_photos/")) return `<span class="glyph" style="--m:url('${this._esc(url)}')"></span>`;
+    return `<img src="${this._esc(url)}" alt="">`;
+  }
+
   _cell(s, kind, shape, editableSlot = true) {
     const p = PHASE[s.phase] || PHASE.empty;
     const icon = `<ha-icon icon="${ICON[s.phase] || ICON.empty}"></ha-icon>`;
-    const img = this._config.show_images && s.image ? `<img src="${this._esc(s.image)}" alt="">` : "";
+    const img = this._config.show_images && s.image ? this._photo(s.image) : "";
     const name = s.plant ? this._esc(s.plant) : (shape === "tile" ? "—" : "");
     const edit = this._config.editable && editableSlot ? ` data-kind="${kind}" data-slot="${s.slot}" tabindex="0" role="button"` : "";
     const cls = `slot ${shape}${this._config.editable && editableSlot ? " editable" : ""}`;
@@ -326,6 +333,9 @@ GreenboxGardenCard.css = `
   .days { color: var(--secondary-text-color); font-size: .8em; min-height: 1.1em; }
   .bar { height: 4px; background: var(--divider-color); border-radius: 2px; margin-top: 6px; overflow: hidden; }
   .bar span { display: block; height: 100%; background: var(--c); }
+  .glyph { display: block; width: 100%; height: 100%; min-height: 40px; background: var(--c); -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+  .pot .face .glyph { width: 84%; height: 84%; min-height: 0; margin: auto; }
+  .tile > .glyph { height: 56px; margin-bottom: 4px; }
   img { width: 100%; height: 56px; object-fit: cover; border-radius: 4px; margin-bottom: 4px; }
   .phase ha-icon { --mdc-icon-size: 16px; vertical-align: -3px; }
   .slot.pot { border: none; border-radius: 12px; padding: 4px; text-align: center; }

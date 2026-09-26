@@ -8,6 +8,7 @@ Regeln aus dem App-Code:
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -102,8 +103,9 @@ def slot_count(layout: str | None, used: list[int]) -> int:
     return max(DEFAULT_SLOTS, max(used) + 1 if used else 0)
 
 
-def build_box(box: dict[str, Any], now: datetime, language: str = "de") -> dict[str, Any]:
-    """Eine Box aus der Cloud -> Übersicht mit allen Slots (leere Slots inklusive)."""
+def build_box(box: dict[str, Any], now: datetime, language: str = "de", photo: Callable[[str | None], str | None] | None = None) -> dict[str, Any]:
+    """Eine Box aus der Cloud -> Übersicht mit allen Slots (leere Slots inklusive). photo: Adresse -> lokale Adresse (falls vorhanden)."""
+    photo = photo or (lambda url: url)
     pkg_slots: dict[int, dict[str, Any]] = {}
     mg_slots: dict[int, dict[str, Any]] = {}
     layout = None
@@ -128,7 +130,7 @@ def build_box(box: dict[str, Any], now: datetime, language: str = "de") -> dict[
                 "source": "package",
                 "plant": plant.get("user_provided_name") or name_of(plant.get("name"), language),
                 "plant_id": plant.get("id"),
-                "image": plant.get("photo"),
+                "image": photo(plant.get("photo")),
                 "planted_at": planted_at.isoformat(),
                 **info,
             }
@@ -145,7 +147,7 @@ def build_box(box: dict[str, Any], now: datetime, language: str = "de") -> dict[
                 "source": "microgreen",
                 "plant": name_of(mg.get("name"), language),
                 "plant_id": mg.get("id"),
-                "image": first_of(mg.get("encyclopedia")).get("image"),
+                "image": photo(first_of(mg.get("encyclopedia")).get("image")),
                 "planted_at": planted_on.isoformat(),
                 **microgreen_phase(planted_on, mg.get("sproutTimeDays") or 0, mg["growthTimeDays"], now),
             }
