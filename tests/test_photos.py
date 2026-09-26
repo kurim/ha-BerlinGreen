@@ -46,6 +46,23 @@ try:
 except Exception:  # noqa: BLE001
     check(True, "Unbrauchbare Daten lösen einen Fehler aus")
 
+print("SVG-Symbole")
+good = b'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 10 10"><defs><clipPath id="c"><rect width="10" height="10"/></clipPath></defs><g clip-path="url(#c)"><path d="M0 0L10 10"/></g></svg>'
+grad = b'<svg><defs><linearGradient id="g"/><linearGradient id="h" xlink:href="#g"/></defs><path fill="url(#h)"/></svg>'
+check(photos.clean_svg(grad) == grad, "SVG mit Verlauf und internem Verweis (#id) wird übernommen")
+check(photos.clean_svg(good) == good and photos.clean_svg(b'<?xml version="1.0"?>\n' + good), "einfaches SVG (Formen, Clip-Pfad) wird übernommen")
+for name, bad in (("Skript", b'<svg><script>alert(1)</script></svg>'), ("Ereignis", b'<svg onload="x()"><path d="M0 0"/></svg>'), ("javascript:", b'<svg><path d="M0 0" style="fill:url(javascript:x)"/></svg>'),
+                  ("Verweis", b'<svg><a href="https://x.example"><path d="M0 0"/></a></svg>'), ("Bild", b'<svg><image href="https://x.example/i.png"/></svg>'),
+                  ("foreignObject", b'<svg><foreignObject><div/></foreignObject></svg>'), ("Doctype", b'<!DOCTYPE svg [<!ENTITY x "y">]><svg/>'),
+                  ("kein SVG", b'<html><svg/></html>'), ("zu groß", b'<svg>' + b' ' * photos.MAX_SVG + b'</svg>')):
+    try:
+        photos.clean_svg(bad)
+        check(False, f"SVG mit {name} wird abgelehnt")
+    except ValueError:
+        check(True, f"SVG mit {name} wird abgelehnt")
+svg_url = "https://cdn.example/icon.SVG?v=1"
+check(photos.file_name(svg_url).endswith(".svg") and photos.file_name("https://cdn.example/a.jpg").endswith(".png"), "SVG-Adressen bleiben .svg, Fotos werden .png")
+
 print("Adressen")
 u = "https://cdn.example/a.jpg"
 check(photos.file_name(u) == photos.file_name(u) and photos.file_name(u).endswith(".png") and photos.file_name(u) != photos.file_name(u + "x"), "Dateiname ist stabil und je Adresse verschieden")
@@ -80,6 +97,11 @@ async def main():
     ok, missing, broken = "https://cdn.example/ok.jpg", "https://cdn.example/missing.jpg", "https://cdn.example/broken.jpg"
     session = Session({ok: (200, drawing()), broken: (200, b"<html>kein Bild</html>")})
     print("Herunterladen")
+    svg_ok, svg_bad = "https://cdn.example/plant-1.svg", "https://cdn.example/plant-2.svg"
+    session_svg = Session({svg_ok: (200, good), svg_bad: (200, b"<svg><script>x</script></svg>")})
+    svg_folder = folder.parent / "svg"
+    check(await photos.sync(session_svg, svg_folder, [svg_ok, svg_bad], run_blocking) == (1, 1) and (svg_folder / photos.file_name(svg_ok)).read_bytes() == good
+          and photos.existing(svg_folder) == {photos.file_name(svg_ok)}, "SVG-Symbol wird unverändert gespeichert, unsicheres verworfen")
     fired = []
     done, failed = await photos.sync(session, folder, [ok, missing, broken, ok, "http://x/y.jpg"], run_blocking, lambda: fired.append(1))
     check((done, failed) == (1, 2) and (folder / photos.file_name(ok)).is_file() and fired == [1], "ein Foto geladen, fehlende und defekte übersprungen, ohne Abbruch")

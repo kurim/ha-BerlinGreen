@@ -3,6 +3,13 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.11.2] - 2026-09-26
+
+### Fixed
+- Sechs Katalogbilder (die SVG-Symbole der eigenen Pflanzen, `experimental-plant-N.svg`) ließen sich nicht laden („6 Foto(s) konnten nicht geladen werden“), weil sie
+  keine Rasterbilder sind. SVG-Symbole werden jetzt unverändert gespeichert, aber nur, wenn sie ausschließlich aus Formen bestehen (kein Skript, keine Ereignisse,
+  keine Verweise nach außen); die Karte färbt sie wie die übrigen Bilder ein. / SVG icons are now cached too (only plain shapes, checked strictly).
+
 ## [0.11.1] - 2026-09-26
 
 ### Fixed

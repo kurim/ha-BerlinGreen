@@ -8,9 +8,11 @@ import asyncio
 import hashlib
 import io
 import logging
+import re
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -24,8 +26,30 @@ WHITE_LEVEL = 24  # so viel Abweichung vom reinen Weiß gilt noch als Hintergrun
 PARALLEL = 4
 
 
+MAX_SVG = 300 * 1024
+_UNSAFE_SVG = re.compile(r"<\s*(script|foreignobject|iframe|embed|object|image|use|a)\b|\bon\w+\s*=|javascript:|<!\s*(entity|doctype)|(?:xlink:)?href\s*=\s*(?![\"']?\s*#)", re.I)
+
+
+def is_svg(url: str) -> bool:
+    return urlparse(url).path.lower().endswith(".svg")
+
+
 def file_name(url: str) -> str:
-    return hashlib.sha1(url.encode()).hexdigest()[:16] + ".png"
+    """Rasterfotos werden PNG, SVG-Symbole (eigene Pflanzen der App) bleiben SVG."""
+    return hashlib.sha1(url.encode()).hexdigest()[:16] + (".svg" if is_svg(url) else ".png")
+
+
+def clean_svg(data: bytes) -> bytes:
+    """Ein SVG-Symbol übernehmen, wenn es nur aus Formen besteht (kein Skript, keine Verweise, keine fremden Inhalte). Es wird nur als Maske
+    benutzt, aber HA liefert die Datei auch direkt aus - deshalb wird streng geprüft."""
+    if len(data) > MAX_SVG:
+        raise ValueError("SVG zu groß")
+    text = data.decode("utf-8")
+    if not re.match(r"\s*(<\?xml[^>]*\?>\s*)?(<!--.*?-->\s*)*<svg\b", text, re.S | re.I):
+        raise ValueError("kein SVG")
+    if _UNSAFE_SVG.search(text):
+        raise ValueError("SVG enthält Skript, Verweise oder fremde Inhalte")
+    return text.encode("utf-8")
 
 
 def wanted(url: object) -> bool:
@@ -66,7 +90,7 @@ def to_png(data: bytes, size: int = SIZE) -> bytes:
 
 def existing(folder: Path) -> set[str]:
     try:
-        return {p.name for p in folder.glob("*.png")}
+        return {p.name for p in folder.iterdir() if p.suffix in (".png", ".svg")}
     except OSError:
         return set()
 
@@ -98,8 +122,8 @@ async def sync(session: Any, folder: Path, urls: Iterable[str], run_blocking: Ca
                 raw = await _fetch(session, url)
                 if raw is None:
                     raise ValueError("Antwort unbrauchbar")
-                png = await run_blocking(to_png, raw)
-                await run_blocking((folder / file_name(url)).write_bytes, png)
+                out = await run_blocking(clean_svg if is_svg(url) else to_png, raw)
+                await run_blocking((folder / file_name(url)).write_bytes, out)
                 done += 1
             except Exception as err:  # noqa: BLE001 - ein defektes Foto darf die anderen nicht aufhalten
                 failed += 1
