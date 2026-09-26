@@ -99,7 +99,7 @@ bleibt unberührt und kommt zurück, wenn du den Modus ausschaltest.
 Was die App nicht abbilden kann, wird in diesem Modus abgelehnt: ein Paket je Box (kein Paket je Slot), nur Katalog-Pflanzen und -Mixe (kein eigener Zeitplan, keine getippten Namen), Slots lassen
 sich ersetzen, aber nicht leeren (stattdessen das Paket entfernen). „Paket entfernen“ schließt nur das Paket ab, Microgreens bleiben.
 
-Die Schreib-Operationen sind die, die auch die App benutzt, aber aus deren Code abgeleitet und **nicht bei jedem Konto geprüft**. Lehnt die Cloud eine Änderung ab, bekommst du die
+Die Schreib-Operationen sind die, die auch die App benutzt, aber aus deren Code abgeleitet. Mit einem Konto bestätigt (Pflanzen in Home Assistant erscheint in der App), **nicht bei jedem Konto geprüft**. Lehnt die Cloud eine Änderung ab, bekommst du die
 Fehlermeldung, lokal geht nichts verloren. Fang mit einer Box an und prüfe die App.
 
 ## Dienste

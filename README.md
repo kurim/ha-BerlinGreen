@@ -97,7 +97,7 @@ returns when you switch the mode off.
 What the app cannot represent is refused in this mode: one package per box (no per-slot package), catalog plants and mixes only (no custom schedule or typed names), slots
 can be replaced but not emptied (remove the package instead). Removing a package only closes it; microgreens stay.
 
-The write operations are the ones the app itself uses, but they were derived from the app's code and are **not verified against every account**. If the cloud refuses a change
+The write operations are the ones the app itself uses, but they were derived from the app's code. Confirmed with one account (planting in Home Assistant shows up in the app); **not verified against every account**. If the cloud refuses a change
 you get the error message and nothing local is lost. Start with one box and check the app.
 
 ## Services
