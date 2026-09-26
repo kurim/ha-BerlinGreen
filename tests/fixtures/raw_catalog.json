@@ -1,0 +1,48 @@
+{
+  "generated": "2026-01-01T00:00:00+00:00",
+  "mixes": [
+    {"id": 1, "name": {"de": "Testkräuter", "en": "Test Herbs"}, "growth_speed": [15, 20, 15], "containsCannabis": false,
+     "is_experimental": false, "temperature": null, "shop_link": "https://example.com/mix/1",
+     "containedPlants": [{"plant": {"id": 101}}, {"plant": {"id": 102}}, {"plant": {"id": 103}}, {"plant": {"id": 104}}]},
+    {"id": 2, "name": {"de": "Testsalat", "en": "Test Salad"}, "growth_speed": [10, 26, 14], "containsCannabis": false,
+     "is_experimental": false, "temperature": null, "shop_link": null,
+     "containedPlants": [{"plant": {"id": 105}}, {"plant": {"id": 106}}]},
+    {"id": 3, "name": null, "growth_speed": [20, 20, 20], "containsCannabis": false, "is_experimental": true,
+     "temperature": null, "shop_link": null, "containedPlants": [{"plant": {"id": 201}}, {"plant": {"id": 202}}]},
+    {"id": 9, "name": {"de": "Verborgener Mix", "en": "Hidden Mix"}, "growth_speed": [10, 60, 15], "containsCannabis": true,
+     "is_experimental": false, "temperature": null, "shop_link": null, "containedPlants": [{"plant": {"id": 301}}]}
+  ],
+  "plants": [
+    {"id": 101, "name": {"de": "Basilikum", "en": "Basil"}, "isCannabis": false, "is_experimental": false, "user_provided_name": null,
+     "description": null, "photo": "https://example.com/p/101.jpg", "growth_speed": null, "image": null,
+     "encyclopaedia": [{"id": 1, "text": {"de": "Text", "en": "Text"}, "tip": {"de": "Tipp", "en": "Tip"}}]},
+    {"id": 102, "name": {"de": "Koriander", "en": "Cilantro"}, "isCannabis": false, "is_experimental": false, "user_provided_name": null,
+     "description": null, "photo": "https://example.com/p/102.jpg", "growth_speed": null, "image": null, "encyclopaedia": []},
+    {"id": 103, "name": {"de": "Thymian", "en": "Thyme"}, "isCannabis": false, "is_experimental": false, "user_provided_name": null,
+     "description": null, "photo": null, "growth_speed": null, "image": null, "encyclopaedia": []},
+    {"id": 104, "name": {"de": "Minze", "en": "Mint"}, "isCannabis": false, "is_experimental": false, "user_provided_name": null,
+     "description": null, "photo": null, "growth_speed": null, "image": null, "encyclopaedia": []},
+    {"id": 105, "name": {"de": "Kopfsalat", "en": "Lettuce"}, "isCannabis": false, "is_experimental": false, "user_provided_name": null,
+     "description": null, "photo": null, "growth_speed": null, "image": null, "encyclopaedia": []},
+    {"id": 106, "name": {"de": "Rauke", "en": "Rocket"}, "isCannabis": false, "is_experimental": false, "user_provided_name": null,
+     "description": null, "photo": null, "growth_speed": null, "image": null, "encyclopaedia": []},
+    {"id": 201, "name": null, "isCannabis": false, "is_experimental": true, "user_provided_name": "My Pepper",
+     "description": null, "photo": null, "growth_speed": null, "image": {"photo": "https://example.com/own.svg"}, "encyclopaedia": []},
+    {"id": 202, "name": null, "isCannabis": false, "is_experimental": true, "user_provided_name": "My Cucumber",
+     "description": null, "photo": null, "growth_speed": null, "image": null, "encyclopaedia": []},
+    {"id": 301, "name": {"de": "Verborgene Pflanze", "en": "Hidden Plant"}, "isCannabis": true, "is_experimental": false,
+     "user_provided_name": null, "description": null, "photo": null, "growth_speed": null, "image": null, "encyclopaedia": []}
+  ],
+  "microgreens": [
+    {"id": 1, "name": {"de": "Rucola", "en": "Arugula"}, "growthTimeDays": 8, "sproutTimeDays": 2, "encyclopedia": [{"id": 1, "image": "https://example.com/m/1.jpg", "description": null, "tips": null}]},
+    {"id": 2, "name": {"de": "Kresse", "en": "Cress"}, "growthTimeDays": 8, "sproutTimeDays": 2, "encyclopedia": [{"id": 2, "image": null, "description": null, "tips": null}]},
+    {"id": 3, "name": {"de": "Senf", "en": "Mustard"}, "growthTimeDays": 8, "sproutTimeDays": 2, "encyclopedia": []},
+    {"id": 4, "name": {"de": "Brokkoli", "en": "Broccoli"}, "growthTimeDays": 8, "sproutTimeDays": 2, "encyclopedia": []},
+    {"id": 5, "name": {"de": "Radieschen", "en": "Radish"}, "growthTimeDays": 8, "sproutTimeDays": 2, "encyclopedia": []},
+    {"id": 6, "name": {"de": "Grünkohl", "en": "Kale"}, "growthTimeDays": 8, "sproutTimeDays": 2, "encyclopedia": []}
+  ],
+  "mushrooms": [
+    {"id": 1, "name": {"de": "Austernseitling", "en": "Oyster mushroom"}, "pinningTimeDays": 7, "growthTimeDays": 4, "harvestTimeDays": 4,
+     "imageURL": null, "encyclopedia": []}
+  ]
+}

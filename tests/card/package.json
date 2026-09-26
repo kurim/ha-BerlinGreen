@@ -1,0 +1,7 @@
+{
+  "name": "greenbox-card-tests",
+  "private": true,
+  "description": "Tests der Lovelace-Karte (jsdom)",
+  "scripts": { "test": "node card.test.js" },
+  "devDependencies": { "jsdom": "^30.1.1" }
+}

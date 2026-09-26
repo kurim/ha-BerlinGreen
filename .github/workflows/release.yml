@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Vorhandenes Tag, z. B. v0.5.0 (ZIP wird angehängt, Release-Text aus dem Changelog gesetzt)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Tag muss zur Version im Manifest passen
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('custom_components/greenbox/manifest.json'))['version'])")
+          if [ "v${version}" != "${TAG}" ]; then
+            echo "Tag ${TAG} passt nicht zu manifest.json (${version})"; exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+
+      - name: Release-Text aus dem Changelog
+        run: |
+          awk -v v="${VERSION}" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "Kein Abschnitt für ${VERSION} in CHANGELOG.md"; exit 1; }
+
+      - name: ZIP der Integration
+        run: cd custom_components/greenbox && zip -r ../../greenbox.zip . -x "*/__pycache__/*" "__pycache__/*"
+
+      - name: Release anlegen oder aktualisieren
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Ein von Hand angelegtes Release (oder ein erneuter Lauf) ist kein Fehler: ZIP anhängen, Text setzen
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" greenbox.zip --clobber
+            gh release edit "${TAG}" --title "${TAG}" --notes-file notes.md
+          else
+            gh release create "${TAG}" greenbox.zip --title "${TAG}" --notes-file notes.md
+          fi

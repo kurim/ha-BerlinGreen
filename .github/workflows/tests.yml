@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install voluptuous pyyaml
+      - run: python -m compileall -q custom_components tools tests
+      - run: python tests/test_metadata.py
+      - run: python tests/test_logic.py
+      - run: python tests/test_hub.py
+      - run: python tests/test_flow.py
+      - run: python tests/test_extract_key.py
+
+  card:
+    name: Card (jsdom)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/card/package-lock.json
+      - run: python tests/make_card_fixtures.py
+      - run: npm ci
+        working-directory: tests/card
+      - run: npm test
+        working-directory: tests/card

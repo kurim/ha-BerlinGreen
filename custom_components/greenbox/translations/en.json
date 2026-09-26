@@ -1,0 +1,324 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "GreenBox",
+        "description": "What would you like to add? The cloud account is optional: without it everything runs locally.",
+        "menu_options": {
+          "ble": "Bluetooth box",
+          "cloud": "App cloud account (optional, read-only)"
+        }
+      },
+      "ble": {
+        "title": "GreenBox",
+        "description": "Choose the GreenBox to set up.",
+        "data": {
+          "address": "Device"
+        }
+      },
+      "confirm": {
+        "description": "Set up {name}?"
+      },
+      "cloud": {
+        "title": "Cloud account",
+        "description": "Sign in with your Berlin Green app account. Only the sign-in token is stored, not the password; Google/Apple sign-in is not supported. The cloud is read-only. `tools/extract_key.py` reads the app's API key from the app file (APK/XAPK), see the instructions in the repository.",
+        "data": {
+          "email": "Email",
+          "password": "Password",
+          "api_key": "App API key"
+        },
+        "data_description": {
+          "api_key": "Starts with AIza and is 39 characters long."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Sign in again",
+        "description": "The sign-in for {email} has expired, or the app's API key is missing (new in version 0.6.0).",
+        "data": {
+          "password": "Password",
+          "api_key": "App API key"
+        }
+      },
+      "reconfigure": {
+        "title": "Change cloud account",
+        "data": {
+          "email": "Email",
+          "password": "Password",
+          "api_key": "App API key"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Wrong email or password (Google/Apple sign-in is not supported).",
+      "cannot_connect": "Connection failed.",
+      "invalid_api_key": "The API key is invalid or restricted to the app. It starts with AIza and is 39 characters long."
+    },
+    "abort": {
+      "no_devices_found": "No GreenBox found. Close the phone app and move a Bluetooth adapter/proxy closer.",
+      "already_configured": "Already configured.",
+      "reauth_successful": "Signed in again.",
+      "reconfigure_successful": "Saved.",
+      "reconfigure_not_supported": "Only the cloud account can be reconfigured.",
+      "no_options": "The cloud account has no options."
+    }
+  },
+  "entity": {
+    "select": {
+      "override": {
+        "name": "Light mode",
+        "state": {
+          "auto": "Automatic",
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "preset": {
+        "name": "Light profile",
+        "state": {
+          "growth": "Growth (neutral 100 %)",
+          "medium": "Medium (neutral 50 %)",
+          "ambient": "Ambient (warm 33 %)",
+          "nightlight": "Night light (cold 5 %)"
+        }
+      },
+      "color_temperature": {
+        "name": "Color temperature",
+        "state": {
+          "3000": "3000 K",
+          "3700": "3700 K",
+          "4500": "4500 K",
+          "5300": "5300 K",
+          "6000": "6000 K"
+        }
+      }
+    },
+    "number": {
+      "intensity": {
+        "name": "Brightness"
+      },
+      "strip1": {
+        "name": "Strip 1 raw (warm)"
+      },
+      "strip2": {
+        "name": "Strip 2 raw (neutral)"
+      },
+      "strip3": {
+        "name": "Strip 3 raw (cold)"
+      },
+      "duration_workdays": {
+        "name": "Light duration (weekdays)"
+      },
+      "duration_weekend": {
+        "name": "Light duration (weekend)"
+      }
+    },
+    "sensor": {
+      "water_level": {
+        "name": "Water level"
+      },
+      "water_status": {
+        "name": "Water status",
+        "state": {
+          "ok": "OK",
+          "low": "Low",
+          "empty": "Empty"
+        }
+      },
+      "firmware": {
+        "name": "Firmware"
+      },
+      "hardware": {
+        "name": "Hardware revision"
+      },
+      "garden": {
+        "name": "Garden"
+      },
+      "slot": {
+        "name": "Slot {slot}",
+        "state": {
+          "empty": "Empty",
+          "germination": "Germination",
+          "growth": "Growth",
+          "harvest": "Harvest",
+          "complete": "Complete"
+        }
+      },
+      "microgreen": {
+        "name": "Microgreen {slot}",
+        "state": {
+          "empty": "Empty",
+          "germination": "Germination",
+          "growth": "Growth",
+          "harvest": "Harvest",
+          "complete": "Complete"
+        }
+      }
+    },
+    "switch": {
+      "blink_on_low_water": {
+        "name": "Blink on low water"
+      }
+    },
+    "time": {
+      "start_workdays": {
+        "name": "Light start (weekdays)"
+      },
+      "start_weekend": {
+        "name": "Light start (weekend)"
+      }
+    },
+    "button": {
+      "sync_time": {
+        "name": "Synchronize clock"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "show_cannabis": "Show cannabis mix and plants (adults only)"
+        }
+      }
+    }
+  },
+  "services": {
+    "plant_package": {
+      "name": "Plant package",
+      "description": "Plant a new mix package (replaces an existing one). Either mix or custom schedule; with a custom schedule plant names can be typed freely.",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        },
+        "mix": {
+          "name": "Mix",
+          "description": "Name or ID of the mix"
+        },
+        "plants": {
+          "name": "Pflanzen",
+          "description": "Slot number and plant, for example 1: Cilantro"
+        },
+        "planted_at": {
+          "name": "Pflanzdatum",
+          "description": "YYYY-MM-DD, default: now"
+        },
+        "germination_days": {
+          "name": "Keimung (Tage)",
+          "description": "Only without a mix"
+        },
+        "growth_days": {
+          "name": "Wachstum (Tage)",
+          "description": "Only without a mix"
+        },
+        "harvest_days": {
+          "name": "Ernte (Tage)",
+          "description": "Only without a mix"
+        }
+      }
+    },
+    "plant_slot": {
+      "name": "Plant slot",
+      "description": "Put a plant into a slot of the current package (1-8).",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        },
+        "slot": {
+          "name": "Slot",
+          "description": "1-8"
+        },
+        "plant": {
+          "name": "Pflanze",
+          "description": "Name or ID"
+        }
+      }
+    },
+    "clear_slot": {
+      "name": "Clear slot",
+      "description": "Empty a plant slot.",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        },
+        "slot": {
+          "name": "Slot",
+          "description": "1-8"
+        }
+      }
+    },
+    "remove_package": {
+      "name": "Remove package",
+      "description": "Remove the whole mix package.",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        }
+      }
+    },
+    "plant_microgreen": {
+      "name": "Plant microgreen",
+      "description": "Plant a microgreen in a microgreen module slot (1-6).",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        },
+        "slot": {
+          "name": "Slot",
+          "description": "1-6"
+        },
+        "microgreen": {
+          "name": "Microgreen",
+          "description": "Name or ID"
+        },
+        "planted_on": {
+          "name": "Datum",
+          "description": "YYYY-MM-DD, default: today"
+        },
+        "sprout_days": {
+          "name": "Germination (days)",
+          "description": "Only for names that are not in the catalog"
+        },
+        "growth_days": {
+          "name": "Days until harvest",
+          "description": "Only for names that are not in the catalog"
+        }
+      }
+    },
+    "clear_microgreen": {
+      "name": "Remove microgreen",
+      "description": "Empty one microgreen slot, or all without a slot.",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        },
+        "slot": {
+          "name": "Slot",
+          "description": "1-6"
+        }
+      }
+    },
+    "import_from_cloud": {
+      "name": "Import from cloud",
+      "description": "Copy the app's planting for this box into local storage (local takes over afterwards).",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        }
+      }
+    },
+    "update_catalog": {
+      "name": "Update catalog",
+      "description": "Load the plant library from the connected cloud account and store it.",
+      "fields": {}
+    }
+  }
+}

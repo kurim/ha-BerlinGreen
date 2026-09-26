@@ -1,0 +1,37 @@
+plant_package:
+  fields:
+    box: {selector: {text: {}}}
+    mix: {selector: {text: {}}}
+    plants: {selector: {object: {}}}
+    planted_at: {selector: {text: {}}}
+    germination_days: {selector: {number: {min: 0, max: 200, mode: box}}}
+    growth_days: {selector: {number: {min: 0, max: 400, mode: box}}}
+    harvest_days: {selector: {number: {min: 0, max: 400, mode: box}}}
+plant_slot:
+  fields:
+    box: {selector: {text: {}}}
+    slot: {required: true, selector: {number: {min: 1, max: 8, mode: box}}}
+    plant: {required: true, selector: {text: {}}}
+clear_slot:
+  fields:
+    box: {selector: {text: {}}}
+    slot: {required: true, selector: {number: {min: 1, max: 8, mode: box}}}
+remove_package:
+  fields:
+    box: {selector: {text: {}}}
+plant_microgreen:
+  fields:
+    box: {selector: {text: {}}}
+    slot: {required: true, selector: {number: {min: 1, max: 6, mode: box}}}
+    microgreen: {required: true, selector: {text: {}}}
+    planted_on: {selector: {text: {}}}
+    sprout_days: {selector: {number: {min: 0, max: 60, mode: box}}}
+    growth_days: {selector: {number: {min: 0, max: 120, mode: box}}}
+clear_microgreen:
+  fields:
+    box: {selector: {text: {}}}
+    slot: {selector: {number: {min: 1, max: 6, mode: box}}}
+import_from_cloud:
+  fields:
+    box: {selector: {text: {}}}
+update_catalog: {}

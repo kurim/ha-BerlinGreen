@@ -1,0 +1,27 @@
+# Python / Node
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+.venv/
+
+# Persönliche Daten und Herstellerinhalte: niemals einchecken
+cloud_dump.json
+catalog.json
+greenbox_catalog.json
+schema.json
+*.xapk
+*.apk
+*.zip
+Screenshot_*
+_alt/
+
+# erzeugte Testvorlagen
+tests/card/fixtures/
+
+# Editor / System
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.Zone.Identifier

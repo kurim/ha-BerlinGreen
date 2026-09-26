@@ -1,0 +1,52 @@
+name: Fehler melden / Bug report
+description: Etwas funktioniert nicht wie erwartet
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Inoffizielle Integration, nicht von Berlin Green. Bitte **keine** Passwörter, Tokens oder Kontodaten in Issues posten.
+  - type: input
+    id: version
+    attributes:
+      label: Version der Integration
+      placeholder: "0.5.0"
+    validations:
+      required: true
+  - type: input
+    id: ha
+    attributes:
+      label: Home-Assistant-Version
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware der Box (Sensor "Firmware") und Box-Typ
+      placeholder: "2.0.3, Standard"
+  - type: dropdown
+    id: area
+    attributes:
+      label: Bereich
+      options:
+        - Bluetooth-Steuerung (Licht, Zeitplan, Wasserstand)
+        - Garten (Bepflanzung, Karte, Katalog)
+        - Cloud-Konto
+        - Einrichtung
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Was passiert, was hast du erwartet?
+    validations:
+      required: true
+  - type: input
+    id: bt
+    attributes:
+      label: Bluetooth-Adapter oder Proxy und Signalstärke (falls bekannt)
+  - type: textarea
+    id: log
+    attributes:
+      label: Protokoll (Einstellungen -> System -> Protokolle, nach "greenbox" filtern)
+      render: text
