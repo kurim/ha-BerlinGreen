@@ -20,14 +20,14 @@ const PHASE = {
 const ICON = { empty: "mdi:plus", germination: "mdi:seed-outline", growth: "mdi:sprout", harvest: "mdi:basket-outline", complete: "mdi:check-circle-outline" };
 
 const T = {
-  de: { newPackage: "Neues Paket pflanzen", plant: "Pflanze", mix: "Mix", pkg: "Paket für diesen Slot", currentPkg: "Paket der Box", syncNote: "Mit der Cloud synchronisiert – Änderungen gehen an die App.", syncPkgNote: "Cloud-Modus: wie in der App ein Paket je Box und nur Katalog-Pflanzen. Ein Slot lässt sich ersetzen, nicht leeren.", cloudPkgNote: "Ein eigenes Paket je Slot gibt es nur lokal – zuerst den Stand übernehmen (Button „Garten aus der Cloud übernehmen“).", custom: "Eigener Zeitplan", date: "Pflanzdatum",
+  de: { mushroom: "Pilz", removeMush: "Pilz entfernen", confirmMush: "Den Pilz wirklich entfernen?", pinning: "Fruchtansatz", newPackage: "Neues Paket pflanzen", plant: "Pflanze", mix: "Mix", pkg: "Paket für diesen Slot", currentPkg: "Paket der Box", syncNote: "Mit der Cloud synchronisiert – Änderungen gehen an die App.", syncPkgNote: "Cloud-Modus: wie in der App ein Paket je Box und nur Katalog-Pflanzen. Ein Slot lässt sich ersetzen, nicht leeren.", cloudPkgNote: "Ein eigenes Paket je Slot gibt es nur lokal – zuerst den Stand übernehmen (Button „Garten aus der Cloud übernehmen“).", custom: "Eigener Zeitplan", date: "Pflanzdatum",
         germ: "Keimung (Tage)", growth: "Wachstum (Tage)", harvest: "Ernte (Tage)", save: "Pflanzen", cancel: "Abbrechen",
         change: "Ändern", clear: "Slot leeren", removePkg: "Paket entfernen", confirmPkg: "Das ganze Paket wirklich entfernen?",
         slot: "Slot", micro: "Microgreens", module: "Modul", microOne: "Microgreen", loading: "Lade Katalog ...", err: "Fehler", choose: "– bitte wählen –",
         cloudNote: "Stand aus der Cloud – eine Änderung übernimmt ihn lokal.", plantName: "Pflanzenname", orName: "oder eigener Name", mgName: "Name", sproutDays: "Keimzeit (Tage)", growthMg: "Tage bis zur Ernte",
         noCatalog: "Kein Katalog geladen: Cloud-Konto verbinden (Dienst greenbox.update_catalog) oder Datei greenbox_catalog.json ablegen. Bis dahin geht \"Eigener Zeitplan\" mit frei getipptem Namen.", planted: "belegt", ready: "erntereif",
         readyShort: "erntereif", finished: "Zyklus beendet", harvestIn: (n) => `Ernte in ${n} T`, notFound: "nicht gefunden" },
-  en: { newPackage: "Plant new package", plant: "Plant", mix: "Mix", pkg: "Package for this slot", currentPkg: "Box package", syncNote: "Synced with the cloud – changes go to the app.", syncPkgNote: "Cloud mode: like the app, one package per box and catalog plants only. A slot can be replaced, not emptied.", cloudPkgNote: "A separate package per slot is only possible locally – take over the state first (button “Import garden from cloud”).", custom: "Custom schedule", date: "Planting date",
+  en: { mushroom: "Mushroom", removeMush: "Remove mushroom", confirmMush: "Really remove the mushroom?", pinning: "Pinning", newPackage: "Plant new package", plant: "Plant", mix: "Mix", pkg: "Package for this slot", currentPkg: "Box package", syncNote: "Synced with the cloud – changes go to the app.", syncPkgNote: "Cloud mode: like the app, one package per box and catalog plants only. A slot can be replaced, not emptied.", cloudPkgNote: "A separate package per slot is only possible locally – take over the state first (button “Import garden from cloud”).", custom: "Custom schedule", date: "Planting date",
         germ: "Germination (days)", growth: "Growth (days)", harvest: "Harvest (days)", save: "Plant", cancel: "Cancel",
         change: "Change", clear: "Empty slot", removePkg: "Remove package", confirmPkg: "Really remove the whole package?",
         slot: "Slot", micro: "Microgreens", module: "Modul", microOne: "Microgreen", loading: "Loading catalog ...", err: "Error", choose: "– please choose –",
@@ -89,6 +89,7 @@ class GreenboxGardenCard extends HTMLElement {
 
   _cell(s, kind, shape, editableSlot = true) {
     const p = PHASE[s.phase] || PHASE.empty;
+    const phaseLabel = kind === "mushroom" && s.phase === "germination" ? this._t.pinning : this._label(p.label);   // beim Pilz heißt die erste Phase Fruchtansatz
     const icon = `<ha-icon icon="${ICON[s.phase] || ICON.empty}"></ha-icon>`;
     const img = this._config.show_images && s.image ? this._photo(s.image) : "";
     const name = s.plant ? this._esc(s.plant) : (shape === "tile" ? "—" : "");
@@ -99,7 +100,7 @@ class GreenboxGardenCard extends HTMLElement {
     if (shape === "pot") {
       return `<div class="${cls}" style="${style}"${title}${edit}>
         <div class="ring"><div class="face">${img || icon}</div><span class="badge">${s.slot + 1}</span></div>
-        <div class="plant">${name}</div><div class="phase">${this._label(p.label)}</div><div class="days">${this._daysText(s)}</div></div>`;
+        <div class="plant">${name}</div><div class="phase">${phaseLabel}</div><div class="days">${this._daysText(s)}</div></div>`;
     }
     if (shape === "sq") {
       return `<div class="${cls}" style="${style}"${title}${edit}>
@@ -108,8 +109,16 @@ class GreenboxGardenCard extends HTMLElement {
     }
     return `<div class="${cls}" style="${style}"${title}${edit}>
       <div class="num">${s.slot + 1}</div>${img}
-      <div class="plant">${name}</div><div class="phase">${icon} ${this._label(p.label)}</div>
+      <div class="plant">${name}</div><div class="phase">${icon} ${phaseLabel}</div>
       <div class="days">${this._daysText(s)}</div><div class="bar"><span style="width:${this._progress(s)}%"></span></div></div>`;
+  }
+
+  _mushrooms(a) {
+    const list = (a.mushrooms || []).filter((x) => x.phase && x.phase !== "empty");
+    if (!list.length) return "";
+    const cols = Math.min(list.length, Number(this._config.columns) || 4);
+    return `<div class="head"><span class="title">${this._t.mushroom}</span></div>
+      <div class="grid" style="grid-template-columns: repeat(${cols}, 1fr)">${list.map((s) => this._cell(s, "mushroom", "tile")).join("")}</div>`;
   }
 
   _cells(slots, kind) {
@@ -144,7 +153,7 @@ class GreenboxGardenCard extends HTMLElement {
       const m = this._config.microgreens;
       const showMicro = m !== false && m !== "false" && micro.some((x) => x.phase !== "empty");
       const grid = (cells) => `<div class="grid" style="grid-template-columns: repeat(${Number(this._config.columns) || 4}, 1fr)">${cells}</div>`;
-      card.innerHTML = `<ha-card>${head}${grid(this._cells(a.slots || [], "plant"))}${showMicro ? `<div class="head"><span class="title">Microgreens</span></div>${grid(this._cells(micro, "micro"))}` : ""}${note}</ha-card>`;
+      card.innerHTML = `<ha-card>${head}${grid(this._cells(a.slots || [], "plant"))}${showMicro ? `<div class="head"><span class="title">Microgreens</span></div>${grid(this._cells(micro, "micro"))}` : ""}${this._mushrooms(a)}${note}</ha-card>`;
       return;
     }
     // App-Layout: ohne Modul 4 x 2 runde Töpfchen; mit Modul links das Microgreens-Modul (3 x 2 Felder), rechts 2 x 2 Töpfchen
@@ -165,7 +174,7 @@ class GreenboxGardenCard extends HTMLElement {
     const addMicro = !hasModule && !hide && this._config.editable && a.mode !== "mushroom"
       ? `<div class="add"><button data-action="addmicro">+ ${t.micro}-${t.module}</button></div>` : "";
     card.setAttribute("lang", this._de ? "de" : "en");
-    card.innerHTML = `<ha-card>${head}${board}${addMicro}${note}</ha-card>`;
+    card.innerHTML = `<ha-card>${head}${board}${this._mushrooms(a)}${addMicro}${note}</ha-card>`;
     const btn = card.querySelector('button[data-action="addmicro"]');
     if (btn) btn.addEventListener("click", () => this._open("micro", 0));
   }
@@ -184,6 +193,16 @@ class GreenboxGardenCard extends HTMLElement {
 
   async _open(kind, slot) {
     const dlg = this.shadowRoot.getElementById("dlg");
+    if (kind === "mushroom") {   // nur entfernen (ein Pilz wird in der App bzw. per Cloud-Übernahme angelegt); kein Katalog nötig
+      const st = this._hass.states[this._config.entity].attributes;
+      const cur = (st.mushrooms || []).find((s) => s.slot === slot) || {};
+      const t = this._t;
+      this._ctx = { kind, slot, box: st.box_key };
+      dlg.innerHTML = this._modal(`<h3>${t.mushroom}${cur.plant ? ` – ${this._esc(cur.plant)}` : ""}</h3>
+        <div class="btns">${this._btn("clearmush", t.removeMush)}${this._btn("cancel", t.cancel)}</div><p class="error" id="err" hidden></p>`);
+      this._wire();
+      return;
+    }
     dlg.innerHTML = this._modal(`<p>${this._t.loading}</p>`);
     let cat;
     try { cat = await this._catalog(); } catch (e) { dlg.innerHTML = this._modal(`<p class="error">${this._esc(e.message || e)}</p>${this._btn("cancel", this._t.cancel)}`); this._wire(); return; }
@@ -295,6 +314,10 @@ class GreenboxGardenCard extends HTMLElement {
     if (action === "cancel") return this._close();
     const slot = ctx.slot + 1;
     if (action === "clear") return this._call(ctx.kind === "micro" ? "clear_microgreen" : "clear_slot", { slot });
+    if (action === "clearmush") {
+      if (!window.confirm(this._t.confirmMush)) return;
+      return this._call("clear_mushroom", {});
+    }
     if (action === "removepkg") {
       if (!window.confirm(this._t.confirmPkg)) return;
       return this._call("remove_package", {});

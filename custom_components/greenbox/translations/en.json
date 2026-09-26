@@ -348,6 +348,16 @@
       "name": "Update catalog",
       "description": "Load the plant library and its photos from the connected cloud account and store them locally.",
       "fields": {}
+    },
+    "clear_mushroom": {
+      "name": "Remove mushroom",
+      "description": "Remove the mushroom kit from the box (in cloud mode also in the app). Planting a new package does this too, like in the app.",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name or address of the box (optional with a single box)"
+        }
+      }
     }
   }
 }

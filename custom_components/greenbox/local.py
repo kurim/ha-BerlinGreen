@@ -7,7 +7,9 @@ Speicherformat je Box:
                        "planted_at": iso, "slots": {"0": {"plant_id": int, "plant": {de,en}, "photo": url,
                                                           "pkg": optional {"mix_id", "mix_name", "schedule", "planted_at"}}}},
    "microgreens": {"0": {"microgreen_id": int, "name": {de,en}, "planted_on": "YYYY-MM-DD", "sprout_days": 2,
-                          "growth_days": 8, "photo": url}}}
+                          "growth_days": 8, "photo": url}},
+   "mushrooms": [{"mushroom_id": int, "name": {de,en}, "planted_on": "YYYY-MM-DD", "pinning_days": 5, "growth_days": 7,
+                  "harvest_days": 5, "photo": url}]}   (nur aus der Cloud übernommen; ein neues Paket ersetzt sie wie in der App)
 "pkg" am Slot = eigenes Paket nur für diesen Slot (anderer Mix/Zeitplan/Pflanzdatum); nur lokal möglich, in der App gilt ein Paket je Box.
 Slots werden intern ab 0 gezählt (wie in der Cloud), in Diensten ab 1."""
 from __future__ import annotations
@@ -24,7 +26,7 @@ DEFAULT_SCHEDULE = [20.0, 20.0, 20.0]  # wie die App bei eigenen Pflanzen
 
 
 def new_box(name: str) -> dict[str, Any]:
-    return {"name": name, "package": None, "microgreens": {}}
+    return {"name": name, "package": None, "microgreens": {}, "mushrooms": []}
 
 
 def _slot(value: int, count: int, what: str) -> int:
@@ -88,6 +90,7 @@ def plant_package(box: dict, lib: Library, *, mix: Any = None, schedule: list[fl
         _check_plant_slot(box, idx)
         chosen[str(idx)] = _resolve_plant(lib, ref, allowed, free_text=free)
     box["package"] = {"mix_id": mix_id, "mix_name": mix_name, "schedule": sched, "planted_at": planted_at or _now_iso(), "slots": chosen}
+    box["mushrooms"] = []  # wie in der App: ein neues Paket ersetzt den Pilz
 
 
 def plant_slot(box: dict, lib: Library, slot: int, plant: Any, *, mix: Any = None, schedule: list[float] | None = None,
@@ -169,6 +172,12 @@ def clear_microgreen(box: dict, slot: int | None = None) -> None:
     del box["microgreens"][key]
 
 
+def clear_mushrooms(box: dict) -> None:
+    if not box.get("mushrooms"):
+        raise GardenError("Es ist kein Pilz gepflanzt")
+    box["mushrooms"] = []
+
+
 def to_cloud_shape(key: str, box: dict) -> dict[str, Any]:
     """Lokale Box -> dasselbe Format wie die Cloud-Antwort (für garden.build_box)."""
     pkg = box.get("package")
@@ -191,7 +200,11 @@ def to_cloud_shape(key: str, box: dict) -> dict[str, Any]:
                           "name": e["name"], "encyclopedia": [{"image": e.get("photo")}]}}
           for s, e in sorted(box.get("microgreens", {}).items(), key=lambda kv: int(kv[0]))]
     return {"id": key, "box_id": key, "name": box["name"], "type": "Standard", "packages": packages,
-            "microgreen_configs": [{"planted_microgreens": mg}] if mg else [], "mushroom_config": []}
+            "microgreen_configs": [{"planted_microgreens": mg}] if mg else [],
+            "mushroom_config": [{"planted_mushrooms": [
+                {"plantedOnDay": e["planted_on"], "mushroom": {
+                    "id": e["mushroom_id"], "name": e["name"], "pinningTimeDays": e["pinning_days"], "growthTimeDays": e["growth_days"],
+                    "harvestTimeDays": e["harvest_days"], "imageURL": e.get("photo")}} for e in box["mushrooms"]]}] if box.get("mushrooms") else []}
 
 
 def from_cloud_shape(raw: dict[str, Any]) -> dict[str, Any]:
@@ -222,6 +235,14 @@ def from_cloud_shape(raw: dict[str, Any]) -> dict[str, Any]:
                 plant = item.get("plant") or {}
                 name = plant.get("name") or ({"de": plant["user_provided_name"]} if plant.get("user_provided_name") else None)
                 slots.setdefault(str(item["slot"]), {"plant_id": plant.get("id"), "plant": name, "photo": plant.get("photo"), "pkg": spec})
+    for cfg in raw.get("mushroom_config") or []:
+        for m in cfg.get("planted_mushrooms") or []:
+            mu = m.get("mushroom") or {}
+            if mu.get("growthTimeDays") is None or not m.get("plantedOnDay"):
+                continue
+            box["mushrooms"].append({
+                "mushroom_id": mu.get("id"), "name": mu.get("name"), "planted_on": m["plantedOnDay"], "pinning_days": mu.get("pinningTimeDays") or 0,
+                "growth_days": mu["growthTimeDays"], "harvest_days": mu.get("harvestTimeDays") or 0, "photo": mu.get("imageURL")})
     for cfg in raw.get("microgreen_configs") or []:
         for m in cfg.get("planted_microgreens") or []:
             mg = m.get("microgreen") or {}

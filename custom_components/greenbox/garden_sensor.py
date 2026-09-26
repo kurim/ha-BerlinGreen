@@ -12,7 +12,7 @@ from .garden import PHASES
 from .hub import DOMAIN, Garden
 
 SUMMARY_ATTRS = ("name", "box_key", "source", "type", "layout", "mix", "mix_id", "schedule", "has_package", "harvest_ready",
-                 "microgreens_planted", "microgreens_ready", "mushrooms", "slots", "microgreens", "microgreen_modules",
+                 "microgreens_planted", "microgreens_ready", "mushrooms", "mushrooms_planted", "mushrooms_ready", "slots", "microgreens", "microgreen_modules",
                  "mode", "plant_slot_ids", "sync")
 
 

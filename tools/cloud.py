@@ -168,9 +168,9 @@ def summarize(data: dict) -> None:
                 mg = m.get("microgreen") or {}
                 print(f"   Microgreen Slot {m['slot']}: {name_of(mg.get('name'))}, gepflanzt {m['plantedOnDay']} ({days_since(m['plantedOnDay'])}), "
                       f"Keimung {mg.get('sproutTimeDays')} Tage, Wachstum {mg.get('growthTimeDays')} Tage")
-        mc = b.get("mushroom_config")
-        if mc:
-            for m in mc.get("planted_mushrooms", []):
+        mc = b.get("mushroom_config") or []
+        for cfg in mc if isinstance(mc, list) else [mc]:  # die Cloud liefert eine Liste (früher als Objekt angenommen)
+            for m in cfg.get("planted_mushrooms", []):
                 mu = m.get("mushroom") or {}
                 print(f"   Pilz: {name_of(mu.get('name'))}, gepflanzt {m['plantedOnDay']} ({days_since(m['plantedOnDay'])}), "
                       f"Pinning {mu.get('pinningTimeDays')} / Wachstum {mu.get('growthTimeDays')} / Ernte {mu.get('harvestTimeDays')} Tage")

@@ -36,6 +36,9 @@ clear_microgreen:
   fields:
     box: {selector: {text: {}}}
     slot: {selector: {number: {min: 1, max: 6, mode: box}}}
+clear_mushroom:
+  fields:
+    box: {selector: {text: {}}}
 import_from_cloud:
   fields:
     box: {selector: {text: {}}}

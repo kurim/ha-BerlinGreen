@@ -24,6 +24,7 @@ Dazu gibt es eine Lovelace-Karte, die aussieht wie die App. English version: [RE
 - Pflanzen mit Wachstumsphasen (Keimung → Wachstum → Ernte) je Slot: 8 runde Töpfchen oder 4 Töpfchen plus Microgreens-Modul mit 6 Feldern, genau wie in der App
 - Alles wird in Home Assistant gespeichert; es wird nichts an Berlin Green gesendet
 - Ein Sensor je Box und ein Phasen-Sensor je Slot, z. B. für Automationen wie „Ernte ist bereit“
+- Pilze (in der App angelegt) erscheinen mit ihrer Phase auf der Karte und am Garten-Sensor; sie lassen sich entfernen, und ein neues Paket ersetzt sie wie in der App
 - Lovelace-Karte mit visuellem Editor; Slot antippen zum Bepflanzen, Ändern oder Leeren. Die Integration liefert die Karte selbst aus, es muss keine Ressource eingetragen werden
 
 **Cloud-Konto (optional)**
@@ -111,6 +112,7 @@ Slots zählen ab 1. `box` ist bei nur einer Box optional (sonst Name oder Adress
 | `greenbox.plant_slot` / `clear_slot` | Pflanze in einen Slot setzen / Slot leeren. `plant_slot` mit `mix` oder `germination_days`/`growth_days`/`harvest_days` (und `planted_at`) gibt dem Slot ein **eigenes Paket** (andere Keim- und Wachstumszeiten); nur lokal |
 | `greenbox.remove_package` | Ganzes Paket entfernen |
 | `greenbox.plant_microgreen` / `clear_microgreen` | Microgreens-Modul (Slots 1–6); Namen ohne Katalogeintrag brauchen `sprout_days` und `growth_days` |
+| `greenbox.clear_mushroom` | Pilz aus einer Box entfernen (im Cloud-Modus auch in der App) |
 | `greenbox.import_from_cloud` | Bepflanzung der App für eine Box in Home Assistant übernehmen (auch als Button **Garten aus der Cloud übernehmen** an der Box; ersetzt deren lokale Bepflanzung) |
 | `greenbox.update_catalog` | Pflanzenbibliothek und Fotos aus dem Cloud-Konto neu laden |
 

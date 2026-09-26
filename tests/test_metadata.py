@@ -63,7 +63,7 @@ if yaml:
     services_yaml = set(yaml.safe_load((PKG / "services.yaml").read_text()))
 else:
     services_yaml = set(re.findall(r"^(\w+):", (PKG / "services.yaml").read_text(), re.M))
-check(services_in_code == services_yaml == set(en["services"]) and len(services_in_code) == 8, f"Dienste stimmen überein (Code, services.yaml, Übersetzung): {sorted(services_in_code)}")
+check(services_in_code == services_yaml == set(en["services"]) and len(services_in_code) == 9, f"Dienste stimmen überein (Code, services.yaml, Übersetzung): {sorted(services_in_code)}")
 fields_ok = True
 if yaml:
     sy = yaml.safe_load((PKG / "services.yaml").read_text())

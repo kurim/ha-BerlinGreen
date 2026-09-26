@@ -348,6 +348,16 @@
       "name": "Katalog aktualisieren",
       "description": "Lädt die Pflanzenbibliothek und ihre Fotos aus dem verbundenen Cloud-Konto und speichert sie lokal.",
       "fields": {}
+    },
+    "clear_mushroom": {
+      "name": "Pilz entfernen",
+      "description": "Entfernt den Pilz aus der Box (im Cloud-Modus auch in der App). Ein neues Paket tut das auch, wie in der App.",
+      "fields": {
+        "box": {
+          "name": "Box",
+          "description": "Name oder Adresse der Box (bei nur einer Box optional)"
+        }
+      }
     }
   }
 }

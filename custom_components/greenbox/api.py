@@ -36,7 +36,7 @@ query GreenboxOverview {
       id
       planted_mushrooms {
         id plantedOnDay
-        mushroom { id pinningTimeDays growthTimeDays harvestTimeDays name { de en } }
+        mushroom { id pinningTimeDays growthTimeDays harvestTimeDays imageURL name { de en } }
       }
     }
   }
@@ -75,6 +75,10 @@ mutation AddPlantedMicrogreen($microgreenConfigId: uuid!, $microgreenId: Int!, $
     "delete_microgreen": """
 mutation DeletePlantedMicrogreen($microgreenConfigId: uuid!, $slot: Int!) {
   delete_planted_microgreen(where: {_and: [{slot: {_eq: $slot}}, {microgreen_config_id: {_eq: $microgreenConfigId}}]}) { affected_rows }
+}""",
+    "delete_mushroom_config": """
+mutation DeleteMushroomConfig($boxId: uuid!) {
+  delete_mushroom_config(where: {box_id: {_eq: $boxId}}) { affected_rows }
 }""",
     "delete_module": """
 mutation DeleteMicrogreenModule($id: uuid!) {

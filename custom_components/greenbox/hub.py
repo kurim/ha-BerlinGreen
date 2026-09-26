@@ -186,7 +186,8 @@ class Garden:
         Beim ersten Mal (Start von Home Assistant) wird nur der Stand gemerkt, damit ein Neustart nicht alle bereits reifen Töpfe meldet."""
         ready: dict[tuple[str, str, int], dict[str, Any]] = {}
         for key, view in views.items():
-            for area, slots in (("plants", view.get("slots") or []), ("microgreens", view.get("microgreens") or [])):
+            for area, slots in (("plants", view.get("slots") or []), ("microgreens", view.get("microgreens") or []),
+                                ("mushrooms", view.get("mushrooms") or [])):
                 for s in slots:
                     if s.get("phase") == HARVEST:
                         ready[(key, area, s["slot"])] = {"box": key, "box_name": view["name"], "area": area, "slot": s["slot"] + 1,
@@ -245,6 +246,7 @@ class Garden:
         lib, temp = self.lib, local.from_cloud_shape(raw)  # Kopie des Cloud-Stands: dieselben Regeln/Fehlermeldungen wie lokal
         packages = [p for p in raw.get("packages") or [] if p.get("id") is not None]
         configs = [c for c in raw.get("microgreen_configs") or [] if c.get("id")]
+        mushroom_configs = [c for c in raw.get("mushroom_config") or [] if c.get("id")]
         ops: list[tuple[str, dict[str, Any]]] = []
         own = "Im Cloud-Modus gibt es wie in der App ein Paket je Box und nur Katalog-Pflanzen"
         if name == "plant_package":
@@ -259,6 +261,8 @@ class Garden:
             ops.append(("plant_new", {"boxId": raw["id"], "mixId": pkg["mix_id"], "plantedAt": pkg["planted_at"], "layout": layout, "planted": planted}))
             if packages:  # erst das neue Paket anlegen, dann das alte abschließen: bei einem Fehler geht nichts verloren
                 ops.append(("remove_packages", {"ids": [p["id"] for p in packages], "removedAt": local._now_iso()}))
+            if mushroom_configs:  # wie in der App ersetzt ein neues Paket den Pilz
+                ops.append(("delete_mushroom_config", {"boxId": raw["id"]}))
         elif name == "plant_slot":
             if any(data.get(k) is not None for k in ("mix", "germination_days", "growth_days", "harvest_days", "planted_at")):
                 raise GardenError(f"{own}: ein eigenes Paket je Slot gibt es nur im lokalen Modus")
@@ -299,6 +303,10 @@ class Garden:
                 idx = int(data["slot"]) - 1
                 ops += [("delete_microgreen", {"microgreenConfigId": c["id"], "slot": idx}) for c in configs
                         if any(m.get("slot") == idx for m in c.get("planted_microgreens") or [])]
+        elif name == "clear_mushroom":
+            if not mushroom_configs:
+                raise GardenError("Es ist kein Pilz gepflanzt")
+            ops.append(("delete_mushroom_config", {"boxId": raw["id"]}))
         else:
             raise GardenError("Diesen Dienst gibt es im Cloud-Modus nicht")
         try:
@@ -389,6 +397,8 @@ class Garden:
                                            data.get("sprout_days"), data.get("growth_days"))
                 elif name == "clear_microgreen":
                     local.clear_microgreen(rec, data.get("slot"))
+                elif name == "clear_mushroom":
+                    local.clear_mushrooms(rec)
         except GardenError as err:
             self.local = snapshot
             raise ServiceValidationError(str(err)) from err

@@ -52,6 +52,7 @@ SERVICES: dict[str, vol.Schema] = {
                                     vol.Optional("planted_on"): cv.string,
                                     vol.Optional("sprout_days"): vol.Coerce(float), vol.Optional("growth_days"): vol.Coerce(float)}),
     "clear_microgreen": vol.Schema({**BOX, vol.Optional("slot"): vol.Coerce(int)}),
+    "clear_mushroom": vol.Schema({**BOX}),
     "import_from_cloud": vol.Schema({**BOX}),
     "update_catalog": vol.Schema({}),
 }

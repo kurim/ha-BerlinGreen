@@ -167,6 +167,28 @@ strip = lambda v: [(s["slot"], s["plant"], s["phase"], s.get("days_elapsed")) fo
 check(strip(cv) == strip(rv) and json.dumps(rec), "Import Cloud -> lokal ergibt dieselbe Ansicht")
 check(len(garden.build_box({"id": "x", "box_id": "B", "name": "n", "packages": [], "microgreen_configs": [], "mushroom_config": []}, NOW)["slots"]) == 8, "leere Box hat 8 Slots")
 
+print("Pilz")
+MUSH = {"id": "mc1", "planted_mushrooms": [{"id": "pm1", "plantedOnDay": "2026-09-20", "mushroom": {
+    "id": 4, "pinningTimeDays": 5, "growthTimeDays": 7, "harvestTimeDays": 5, "imageURL": "https://example.com/p.jpg", "name": {"de": "Austernpilz", "en": "Oyster"}}}]}
+mbox = dict(raw_box, mushroom_config=[MUSH])
+mv = garden.build_box(mbox, NOW)
+m0 = mv["mushrooms"][0]
+check(len(mv["mushrooms"]) == 1 and m0["plant"] == "Austernpilz" and m0["phase"] == "growth" and abs(m0["days_elapsed"] - 7.4) < 0.1
+      and abs(m0["days_to_harvest"] - 4.6) < 0.1 and m0["image"] == "https://example.com/p.jpg" and mv["mushrooms_planted"] == 1 and mv["mushrooms_ready"] == 0,
+      "Pilz aus der Cloud (Liste): Phase Wachstum, 4,6 Tage bis zur Ernte")
+check(mv["mode"] == "mixed" and mv["slots"][0]["plant"] == "My Pepper", "Pilz neben Paket und Microgreens ändert deren Ansicht nicht")
+check(garden.build_box(dict(raw_box, packages=[], microgreen_configs=[], mushroom_config=[MUSH]), NOW)["mode"] == "mushroom", "nur Pilz: Modus 'mushroom'")
+check(garden.build_box(dict(raw_box, mushroom_config=[{"id": "x", "planted_mushrooms": []}]), NOW)["mushrooms"] == [], "leere Pilz-Konfiguration zeigt nichts")
+late = dict(mbox); late["mushroom_config"] = [{"id": "mc1", "planted_mushrooms": [dict(MUSH["planted_mushrooms"][0], plantedOnDay="2026-09-14")]}]
+check(garden.build_box(late, NOW)["mushrooms"][0]["phase"] == "harvest" and garden.build_box(late, NOW)["mushrooms_ready"] == 1, "Pilz im Erntefenster")
+mrec = loc.from_cloud_shape(mbox)
+check(mrec["mushrooms"][0]["mushroom_id"] == 4 and json.dumps(mrec) and garden.build_box(loc.to_cloud_shape("K", mrec), NOW)["mushrooms"][0]["phase"] == "growth", "Import und Rückweg behalten den Pilz")
+loc.plant_package(mrec, Library(cat), mix="Test Herbs", slots={1: "Basil"})
+check(mrec["mushrooms"] == [] and garden.build_box(loc.to_cloud_shape("K", mrec), NOW)["mushrooms"] == [], "ein neues Paket ersetzt den Pilz (wie in der App)")
+mrec2 = loc.from_cloud_shape(mbox)
+loc.clear_mushrooms(mrec2)
+check(mrec2["mushrooms"] == [] and raises(lambda: loc.clear_mushrooms(mrec2), "kein Pilz"), "Pilz entfernen; ohne Pilz klare Meldung")
+
 print("Bluetooth-Protokoll")
 check(proto.frame_override(0).hex() == "ee4f0000d4ef" and proto.frame_override(1).hex() == "ee4f0001d3ef" and proto.frame_override(3).hex() == "ee4f0003d1ef", "Override-Frames")
 check(proto.frame_strip(1, 50).hex() == "ee310032c0ef" and proto.frame_switch_time(False, 600).hex() == "ee53025876ef" and proto.frame_duration(False, 12).hex() == "ee44000cd3ef", "Streifen-, Schaltzeit- und Dauer-Frames")

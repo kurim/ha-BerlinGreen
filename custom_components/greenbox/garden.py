@@ -164,13 +164,22 @@ def build_box(box: dict[str, Any], now: datetime, language: str = "de", photo: C
 
     micro = fill(mg_slots)
     micro_modules = [fill(m) for m in modules] or [micro]
-    mushrooms = []
-    for m in ((box.get("mushroom_config") or [{}])[0].get("planted_mushrooms") or []) if box.get("mushroom_config") else []:
-        mu = m.get("mushroom") or {}
-        planted_on = parse_time(m.get("plantedOnDay"))
-        mushrooms.append({"plant": name_of(mu.get("name"), language), "planted_at": planted_on.isoformat() if planted_on else None,
-                          "pinning_days": mu.get("pinningTimeDays"), "growth_days": mu.get("growthTimeDays"),
-                          "harvest_days": mu.get("harvestTimeDays")})
+    mushrooms: list[dict[str, Any]] = []
+    for cfg in box.get("mushroom_config") or []:  # die Cloud liefert eine Liste von Konfigurationen
+        for m in cfg.get("planted_mushrooms") or []:
+            mu = m.get("mushroom") or {}
+            planted_on = parse_time(m.get("plantedOnDay"))
+            entry: dict[str, Any] = {
+                "slot": len(mushrooms), "source": "mushroom", "plant": name_of(mu.get("name"), language), "plant_id": mu.get("id"),
+                "image": photo(mu.get("imageURL")), "planted_at": planted_on.isoformat() if planted_on else None,
+                "pinning_days": mu.get("pinningTimeDays"), "harvest_days": mu.get("harvestTimeDays"),
+            }
+            if planted_on is not None and mu.get("growthTimeDays") is not None:
+                # Pilz: Fruchtansatz (pinning) -> Wachstum -> Erntefenster; gleiche Phasenregeln wie beim Paket
+                entry.update(package_phase(planted_on, [mu.get("pinningTimeDays") or 0, mu["growthTimeDays"], mu.get("harvestTimeDays") or 0], now))
+            else:
+                entry["phase"] = EMPTY
+            mushrooms.append(entry)
     planted_count = sum(1 for s in full if s["phase"] != EMPTY)
     micro_count = sum(1 for s in micro if s["phase"] != EMPTY)
     return {
@@ -188,12 +197,13 @@ def build_box(box: dict[str, Any], now: datetime, language: str = "de", photo: C
         "harvest_ready": sum(1 for s in full if s["phase"] == HARVEST),
         "microgreens": micro,
         "microgreen_modules": micro_modules,
-        "mode": ("mushroom" if box.get("mushroom_config") else "double" if len(modules) >= 2
-                 else "mixed" if modules else "plants"),
+        "mode": ("double" if len(modules) >= 2 else "mixed" if modules else "mushroom" if mushrooms else "plants"),
         "plant_slot_ids": MIXED_PLANT_SLOTS if modules else list(range(plant_count)),
         "microgreens_planted": micro_count,
         "microgreens_ready": sum(1 for s in micro if s["phase"] == HARVEST),
         "mushrooms": mushrooms,
+        "mushrooms_planted": sum(1 for s in mushrooms if s["phase"] != EMPTY),
+        "mushrooms_ready": sum(1 for s in mushrooms if s["phase"] == HARVEST),
     }
 
 

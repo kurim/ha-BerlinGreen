@@ -3,6 +3,18 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.11.0] - 2026-09-26
+
+### Added
+- **Pilz:** Ein in der App angelegter Pilz erscheint mit Phase (Fruchtansatz, Wachstum, Ernte) auf der Karte und im Garten-Sensor (`mushrooms`, `mushrooms_planted`,
+  `mushrooms_ready`); er meldet ebenfalls `greenbox_harvest_ready`. Neuer Dienst `greenbox.clear_mushroom` und Pilz-Dialog auf der Karte zum Entfernen.
+  Ein neues Paket ersetzt den Pilz wie in der App (lokal und im Cloud-Modus, dort wird die Pilz-Konfiguration in der Cloud gelöscht). Beim Übernehmen aus der Cloud
+  bleibt der Pilz erhalten. / Mushrooms are shown, can be removed, and are replaced by a new package like in the app.
+
+### Fixed
+- `tools/cloud.py` brach ab, wenn eine Box einen Pilz hatte (die Cloud liefert `mushroom_config` als Liste). Der Modus „Pilz“ wird nur noch bei tatsächlich
+  gepflanztem Pilz gesetzt und überschreibt nicht mehr die Ansicht von Paket und Microgreens.
+
 ## [0.10.0] - 2026-09-26
 
 ### Added

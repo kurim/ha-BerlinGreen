@@ -13,7 +13,7 @@ garden = importlib.import_module("greenbox.garden")
 OUT = Path(__file__).resolve().parent / "card" / "fixtures"
 OUT.mkdir(parents=True, exist_ok=True)
 ATTRS = ("name", "box_key", "source", "type", "layout", "mix", "mix_id", "schedule", "has_package", "harvest_ready", "microgreens_planted",
-         "microgreens_ready", "mushrooms", "slots", "microgreens", "microgreen_modules", "mode", "plant_slot_ids")
+         "microgreens_ready", "mushrooms", "mushrooms_planted", "mushrooms_ready", "slots", "microgreens", "microgreen_modules", "mode", "plant_slot_ids")
 lib = L.Library(_stubs.slim_catalog())
 
 
@@ -46,4 +46,9 @@ def mg(i, n):
 
 write("st_double", state(raw={"id": "x", "box_id": _stubs.MAC1, "name": "Double", "type": "Standard", "packages": [], "mushroom_config": [],
                               "microgreen_configs": [{"planted_microgreens": [mg(0, "Cress")]}, {"planted_microgreens": [mg(0, "Arugula")]}]}))
+write("st_mush", state(raw={"id": "x", "box_id": _stubs.MAC1, "name": "Pilzbox", "type": "Standard", "microgreen_configs": [],
+                            "packages": [{"planted_at": "2026-09-25T09:00:00+00:00", "layout": "EightSlot", "mix": {"id": 1, "name": {"de": "Testkräuter"}, "growth_speed": [15, 20, 15]},
+                                          "planted": [{"slot": 0, "plant": {"id": 101, "name": {"de": "Basilikum"}, "photo": None}}]}],
+                            "mushroom_config": [{"id": "mc1", "planted_mushrooms": [{"id": "p", "plantedOnDay": "2026-09-20", "mushroom": {
+                                "id": 4, "pinningTimeDays": 5, "growthTimeDays": 7, "harvestTimeDays": 5, "name": {"de": "Austernpilz"}}}]}]}))
 print("Vorlagen geschrieben:", sorted(p.name for p in OUT.glob("*.json")))

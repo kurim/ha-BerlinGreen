@@ -147,7 +147,7 @@ async def main():
     print("Start")
     await asyncio.gather(gb.async_setup_entry(h, e1), gb.async_setup_entry(h, e2))
     g = h.data["greenbox"]["_garden"]
-    check(h.services.reg == 8 and len(h.ws) == 1 and sorted(FakeDevice.started) == sorted([MAC1, MAC2]), "gleichzeitiger Start: ein Garten, 8 Dienste einmal, 1 Websocket-Befehl, 2 Geräte")
+    check(h.services.reg == 9 and len(h.ws) == 1 and sorted(FakeDevice.started) == sorted([MAC1, MAC2]), "gleichzeitiger Start: ein Garten, 9 Dienste einmal, 1 Websocket-Befehl, 2 Geräte")
     check(len(h.http.paths) == 2 and h.http.paths[0][0] == "/greenbox_static" and h.http.paths[0][1].endswith("frontend") and h.http.paths[1][0] == "/greenbox_photos" and h.http.paths[1][1].endswith("greenbox_photos") and h.js == ["/greenbox_static/greenbox-garden-card.js?v=9.9.9"],
           "Karte wird automatisch bereitgestellt (einmal, mit Version gegen Cache)")
     check((PKG := _stubs.PKG / "frontend" / "greenbox-garden-card.js").is_file(), "Kartendatei liegt in der Integration")
@@ -244,6 +244,12 @@ async def main():
     h.events.clear()
     g._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
     check(h.events == [], "kein zweites Ereignis für einen Topf, der schon erntereif war")
+    h.events.clear()
+    g._detect_harvest({"K": {"name": "Kiste", "slots": [], "microgreens": [], "mushrooms": []}})
+    g._detect_harvest({"K": {"name": "Kiste", "slots": [], "microgreens": [], "mushrooms": [{"slot": 0, "phase": "harvest", "plant": "Austernpilz", "plant_id": 4}]}})
+    check(h.events == [("greenbox_harvest_ready", {"box": "K", "box_name": "Kiste", "area": "mushrooms", "slot": 1, "plant": "Austernpilz", "plant_id": 4})], "auch der Pilz meldet erntereif")
+    g._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})  # Zustand für den Neustart-Test
+    h.events.clear()
     fresh = hub.Garden(h)
     fresh._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
     check(h.events == [], "beim Start wird nur der Stand gemerkt")
@@ -300,6 +306,24 @@ async def main():
     check(cloud.ops == [("delete_module", {"id": "cfg1"})], "clear_microgreen ohne Feld: Modul löschen")
     cloud.boxes = [box(MAC1, "Cloud name"), box(CLOUD_ONLY, "Andere Box")]
     await g.coordinator.async_refresh()
+    cloud.ops.clear()
+    check(await expect(call("clear_mushroom", {"box": MAC1}), "kein Pilz"), "ohne Pilz in der Cloud: klare Meldung")
+    mb = box(MAC1, "Cloud name")
+    mb["mushroom_config"] = [{"id": "mc1", "planted_mushrooms": [{"id": "pm1", "plantedOnDay": "2026-09-20", "mushroom": {
+        "id": 4, "pinningTimeDays": 5, "growthTimeDays": 7, "harvestTimeDays": 5, "name": {"de": "Austernpilz", "en": "Oyster"}}}]}]
+    cloud.boxes = [mb, box(CLOUD_ONLY, "Andere Box")]
+    await g.coordinator.async_refresh()
+    check(g.coordinator.data[MAC1]["mushrooms"][0]["plant"] == "Austernpilz" and g.coordinator.data[MAC1]["mushrooms_planted"] == 1, "Pilz der Cloud erscheint in der Ansicht")
+    await call("clear_mushroom", {"box": MAC1})
+    check(cloud.ops == [("delete_mushroom_config", {"boxId": "u" + MAC1})], "clear_mushroom: Pilz-Konfiguration in der Cloud löschen")
+    cloud.ops.clear()
+    await call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Cilantro"}})
+    check([o for o, _ in cloud.ops] == ["plant_new", "delete_mushroom_config"], "plant_package ersetzt den Pilz (wie in der App), ohne altes Paket kein Abschließen")
+    cloud.boxes = [box(MAC1, "Cloud name"), box(CLOUD_ONLY, "Andere Box")]
+    await g.coordinator.async_refresh()
+    cloud.ops.clear()
+    await call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Cilantro"}})
+    check([o for o, _ in cloud.ops] == ["plant_new"], "ohne Pilz wird nichts gelöscht")
     cloud.ops.clear()
     await call("plant_microgreen", {"box": MAC1, "slot": 1, "microgreen": "Mustard", "planted_on": "2026-09-25"})
     check(cloud.ops == [("set_microgreen_config", {"boxId": "u" + MAC1, "planted_microgreens": [{"microgreen_id": 3, "plantedOnDay": "2026-09-25", "slot": 0}]})], "ohne Modul: Modul mit dem ersten Feld anlegen")
@@ -391,7 +415,7 @@ async def main():
     h.config_entries.entries = [e3]
     await gb.async_setup_entry(h, e3)
     g4 = h.data["greenbox"]["_garden"]
-    check(g4 is not g and g4.coordinator.data[MAC1]["planted_count"] == 1 and not g4.lib.is_empty and h.services.reg == 16, "Neustart: Bepflanzung und Katalog bleiben erhalten, Dienste neu registriert")
+    check(g4 is not g and g4.coordinator.data[MAC1]["planted_count"] == 1 and not g4.lib.is_empty and h.services.reg == 18, "Neustart: Bepflanzung und Katalog bleiben erhalten, Dienste neu registriert")
     check(len(h.http.paths) == 2 and len(h.js) == 1, "Karte und Fotoordner werden nicht doppelt registriert")
     print("\n" + ("%d FEHLER" % fails if fails else "alle Tests ok"))
     sys.exit(1 if fails else 0)

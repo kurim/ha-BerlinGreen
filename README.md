@@ -24,6 +24,7 @@ growing in it, including a Lovelace card that looks like the app. Deutsche Versi
 - Plants with growth phases (germination → growth → harvest) per slot: 8 round pots, or 4 pots plus the 6-field microgreens module, exactly like the app
 - Everything is stored in Home Assistant; nothing is sent to Berlin Green
 - One sensor per box and one phase sensor per slot, for automations such as "harvest is ready"
+- Mushrooms (planted in the app) are shown with their phase on the card and the garden sensor; they can be removed, and a new package replaces them like in the app
 - A Lovelace card with a visual editor; tap a slot to plant, change or empty it. The integration serves the card itself, no resource to add
 
 **Cloud account (optional)**
@@ -109,6 +110,7 @@ Slots count from 1. `box` is optional when you have a single box (name or addres
 | `greenbox.plant_slot` / `clear_slot` | Put a plant into a slot / empty it. `plant_slot` with `mix` or `germination_days`/`growth_days`/`harvest_days` (and `planted_at`) gives that slot its **own package** (other germination/growth times); local only |
 | `greenbox.remove_package` | Remove the whole package |
 | `greenbox.plant_microgreen` / `clear_microgreen` | Microgreen module (slots 1–6); names not in the catalog need `sprout_days` and `growth_days` |
+| `greenbox.clear_mushroom` | Remove the mushroom kit from a box (in cloud mode also in the app) |
 | `greenbox.import_from_cloud` | Copy the app's planting for a box into Home Assistant (also the button **Import garden from cloud** on the box; replaces its local planting) |
 | `greenbox.update_catalog` | Reload the plant library and its photos from the cloud account |
 
