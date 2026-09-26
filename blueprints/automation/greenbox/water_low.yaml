@@ -1,0 +1,51 @@
+blueprint:
+  name: GreenBox – Wasserstand kritisch / Water level critical
+  description: >-
+    Schickt eine Push-Nachricht an die Home-Assistant-App, wenn der Wasserstatus einer GreenBox auf „niedrig“ oder „leer“ fällt.
+    Wähle den Sensor „Wasserstatus“ der Box. / Sends a push notification when a GreenBox water status drops to low or empty.
+    Choose the box's "Water status" sensor.
+  domain: automation
+  source_url: https://github.com/kurim/ha-BerlinGreen/blob/main/blueprints/automation/greenbox/water_low.yaml
+  input:
+    water_status:
+      name: Wasserstatus-Sensor / Water status sensor
+      selector:
+        entity:
+          filter:
+            - integration: greenbox
+              domain: sensor
+              device_class: enum
+    notify_device:
+      name: Handy / Mobile device
+      selector:
+        device:
+          integration: mobile_app
+    title:
+      name: Titel / Title
+      default: "GreenBox: Wasser"
+      selector:
+        text: {}
+    message:
+      name: Text / Message
+      description: "Vorlage. Verfügbar: `trigger.to_state` (Zustand `low` oder `empty`)."
+      default: >-
+        {{ trigger.to_state.name }}: Wasser {{ 'ist leer' if trigger.to_state.state == 'empty' else 'wird knapp' }} – bitte nachfüllen.
+      selector:
+        text:
+          multiline: true
+
+mode: single
+
+triggers:
+  - trigger: state
+    entity_id: !input water_status
+    to:
+      - low
+      - empty
+
+actions:
+  - device_id: !input notify_device
+    domain: mobile_app
+    type: notify
+    title: !input title
+    message: !input message

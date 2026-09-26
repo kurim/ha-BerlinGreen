@@ -82,9 +82,26 @@ const optByText = (t, sel, text) => t.$$(`${sel} option`).find((o) => o.textCont
   ok(!t.$('button[data-action="addmicro"]'), "kein Hinzufügen-Knopf, wenn das Modul schon da ist");
   ok(t.$$(".sq .plant").map((e) => e.textContent).slice(0, 3).join(",") === "Rucola,Kresse,", "Feld 1 = Rucola, Feld 2 = Kresse, Feld 3 leer (Namen in der Sprache der Oberfläche)");
   await open(t, "plant", 4);
-  ok(!t.$("#mix") && t.$$("#plant option").length === 5 && !t.$("#plantname"), "Pflanz-Slot 5: nur Pflanzen des Mixes");
+  ok(t.$("#mix").selectedOptions[0].textContent.startsWith("Paket der Box: Testkräuter") && t.$$("#plant option").length === 5 && !t.$("#plantname") && t.$("#custom").hidden && t.$("#pkgdate").hidden,
+    "Pflanz-Slot 5: Paket der Box vorgewählt, nur Pflanzen des Mixes");
   setVal(t.$("#plant"), t.$$("#plant option")[3].value); t.$("button.primary").click(); await tick();
   ok(t.calls[0].s === "plant_slot" && t.calls[0].data.slot === 5 && t.calls[0].data.plant === 103, "plant_slot 5: " + JSON.stringify(t.calls[0].data));
+  console.log("6b) Eigenes Paket je Slot (lokal)");
+  t = make(stPkg); await open(t, "plant", 4);
+  const pk = t.$$("#mix option").map((o) => o.textContent);
+  ok(pk[0].includes("Paket der Box") && pk.some((x) => x.includes("Test Salad (10/26/14)")) && pk.some((x) => x.includes("Eigener Zeitplan")) && !pk.some((x) => x.includes("Hidden")), "Paketliste: Paket der Box, Mixe mit Zeitplan, eigener Zeitplan");
+  setVal(t.$("#mix"), 2);
+  ok(!t.$("#pkgdate").hidden && t.$("#custom").hidden && t.$$("#plant option").length > 1 && !t.$("#plantname"), "anderer Mix: Pflanzdatum sichtbar, nur dessen Pflanzen");
+  setVal(t.$("#plant"), t.$$("#plant option")[1].value); setVal(t.$("#date"), "2026-09-20"); t.$("button.primary").click(); await tick();
+  ok(t.calls[0].s === "plant_slot" && t.calls[0].data.mix === 2 && t.calls[0].data.planted_at === "2026-09-20" && t.calls[0].data.slot === 5 && !("germination_days" in t.calls[0].data), "plant_slot mit eigenem Mix: " + JSON.stringify(t.calls[0].data));
+  t = make(stPkg); await open(t, "plant", 4); setVal(t.$("#mix"), "custom");
+  ok(!t.$("#custom").hidden && t.$("#plantname"), "eigener Zeitplan: Felder und freies Namensfeld");
+  setVal(t.$("#plantname"), "Nachtkerze"); setVal(t.$("#d0"), 4); setVal(t.$("#d1"), 9); setVal(t.$("#d2"), 6); t.$("button.primary").click(); await tick();
+  ok(t.calls[0].data.plant === "Nachtkerze" && t.calls[0].data.germination_days === 4 && t.calls[0].data.growth_days === 9 && t.calls[0].data.harvest_days === 6 && !("mix" in t.calls[0].data), "plant_slot mit eigenem Zeitplan: " + JSON.stringify(t.calls[0].data));
+  t = make({ ...stPkg, attributes: { ...stPkg.attributes, source: "cloud" } }); await open(t, "plant", 4);
+  ok(!t.$("#mix") && t.$(".hint").textContent.includes("nur lokal"), "Cloud-Stand: keine Paketwahl je Slot, Hinweis");
+  t = make({ state: "1", attributes: { ...stPkg.attributes, slots: stPkg.attributes.slots.map((x, i) => i === 0 ? { ...x, package: "Testsalat" } : x) } });
+  ok(t.$(".pot").getAttribute("title").includes("Testsalat"), "Slot mit anderem Paket nennt es im Tooltip");
   t = make(stPkg); await open(t, "plant", 0);
   ok(t.$("#plant").selectedOptions[0].textContent === "Basil" && t.$$("button").map((b) => b.textContent).join("|").includes("Slot leeren"), "belegter Topf: Pflanze vorgewählt, 'Slot leeren'");
   t.$('button[data-action="clear"]').click(); await tick(); ok(t.calls[0].s === "clear_slot" && t.calls[0].data.slot === 1, "clear_slot 1");

@@ -3,6 +3,16 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.9.0] - 2026-09-26
+
+### Added
+- **Eigenes Paket je Slot (nur lokal):** Im Slot-Dialog der Karte gibt es die Auswahl „Paket für diesen Slot“: Paket der Box, ein anderer Mix oder ein eigener
+  Zeitplan (mit Pflanzdatum). So können Pflanzen mit anderer Keimung/Wachstumsdauer in derselben Box stehen. Dienst `greenbox.plant_slot` bekommt dafür
+  `mix`, `germination_days`, `growth_days`, `harvest_days` und `planted_at`. Bei Cloud-Ständen ist die Auswahl aus (Hinweis: erst übernehmen);
+  weitere Pakete der Cloud werden beim Übernehmen zu Slot-Paketen. / A slot can get its own package (local only; disabled for cloud state).
+- **Benachrichtigungen:** Ereignis `greenbox_harvest_ready` und zwei Blueprints (`blueprints/automation/greenbox/`): Erntereif und Wasser kritisch, jeweils
+  als Push an die Home-Assistant-App. / Event and blueprints for harvest-ready and water-critical push notifications.
+
 ## [0.8.0] - 2026-09-26
 
 ### Added

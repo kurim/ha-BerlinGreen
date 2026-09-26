@@ -20,13 +20,14 @@ from homeassistant.util import dt as dt_util
 
 from . import catalog_build, local, photos
 from .api import ApiError, ApiKeyError, AuthError, GreenboxCloud
-from .garden import build_box, parse_time
+from .garden import HARVEST, build_box, parse_time
 from .library import GardenError, Library
 
 DOMAIN = "greenbox"
 CONF_CLOUD = "cloud"  # Eintrag ist das (optionale) Cloud-Konto, keine Bluetooth-Box
 CONF_API_KEY = "api_key"  # Firebase-API-Schlüssel der App (vom Nutzer eingetragen, siehe tools/extract_key.py)
 CONF_CANNABIS = "show_cannabis"
+EVENT_HARVEST_READY = "greenbox_harvest_ready"  # Ereignis, wenn ein Topf erntereif wird (für Benachrichtigungen)
 CATALOG_FILE = "greenbox_catalog.json"  # optional im Home-Assistant-Ordner (siehe tools/make_catalog.py)
 UPDATE_INTERVAL = timedelta(minutes=15)  # Cloud selten abfragen (inoffizielle API); lokale Änderungen wirken sofort
 _LOGGER = logging.getLogger(__name__)
@@ -49,6 +50,8 @@ class Garden:
         self.cloud: GreenboxCloud | None = None
         self.raw_cloud: dict[str, dict] = {}
         self._reauth_started = False
+        self._boxes: set[str] = set()
+        self._ready: set[tuple[str, str, int]] | None = None  # aktuell erntereife Töpfe (None = noch nicht ausgewertet)
         self.coordinator: DataUpdateCoordinator = DataUpdateCoordinator(
             hass, _LOGGER, config_entry=None, name="greenbox garden", update_method=self._update, update_interval=UPDATE_INTERVAL)
 
@@ -173,7 +176,27 @@ class Garden:
                         await self.async_update_catalog(refresh=False)
                     except GardenError as err:
                         _LOGGER.warning("Katalog nicht geladen: %s", err)
-        return self.views()
+        views = self.views()
+        self._detect_harvest(views)
+        return views
+
+    def _detect_harvest(self, views: dict[str, dict[str, Any]]) -> None:
+        """Feuert greenbox_harvest_ready für jeden Topf, der seit der letzten Auswertung erntereif geworden ist.
+        Beim ersten Mal (Start von Home Assistant) wird nur der Stand gemerkt, damit ein Neustart nicht alle bereits reifen Töpfe meldet."""
+        ready: dict[tuple[str, str, int], dict[str, Any]] = {}
+        for key, view in views.items():
+            for area, slots in (("plants", view.get("slots") or []), ("microgreens", view.get("microgreens") or [])):
+                for s in slots:
+                    if s.get("phase") == HARVEST:
+                        ready[(key, area, s["slot"])] = {"box": key, "box_name": view["name"], "area": area, "slot": s["slot"] + 1,
+                                                          "plant": s.get("plant"), "plant_id": s.get("plant_id")}
+        previous, self._ready = self._ready, set(ready)
+        known, self._boxes = self._boxes, set(views)
+        if previous is None:
+            return
+        for k in sorted(set(ready) - previous):
+            if k[0] in known:  # eine Box, die erst jetzt auftaucht (z. B. Cloud war beim Start offline), meldet ihren Bestand nicht
+                self.hass.bus.async_fire(EVENT_HARVEST_READY, ready[k])
 
     # --- Ansicht --------------------------------------------------------------------------------
     def ble_boxes(self) -> dict[str, str]:
@@ -203,7 +226,9 @@ class Garden:
         return [k for k in (self.coordinator.data or {}) if k not in ble]
 
     def refresh(self) -> None:
-        self.coordinator.async_set_updated_data(self.views())
+        views = self.views()
+        self._detect_harvest(views)
+        self.coordinator.async_set_updated_data(views)
 
     # --- Dienste --------------------------------------------------------------------------------
     def resolve(self, ref: str | None) -> str:
@@ -249,7 +274,13 @@ class Garden:
                     local.plant_package(rec, lib, mix=data.get("mix"), schedule=schedule, slots=data.get("plants"),
                                         planted_at=self._when(data.get("planted_at")))
                 elif name == "plant_slot":
-                    local.plant_slot(rec, lib, data["slot"], data["plant"])
+                    schedule = None
+                    if data.get("mix") is None and any(data.get(k) is not None for k in ("germination_days", "growth_days", "harvest_days")):
+                        schedule = [data.get("germination_days"), data.get("growth_days"), data.get("harvest_days")]
+                        if any(x is None for x in schedule):
+                            raise GardenError("Ein eigener Zeitplan braucht germination_days, growth_days und harvest_days")
+                    local.plant_slot(rec, lib, data["slot"], data["plant"], mix=data.get("mix"), schedule=schedule,
+                                     planted_at=self._when(data.get("planted_at")))
                 elif name == "clear_slot":
                     local.clear_slot(rec, data["slot"])
                 elif name == "remove_package":

@@ -77,6 +77,8 @@ class Hass:
     def __init__(self):
         self.data, self.config, self.config_entries, self.services = {}, Cfg(), ConfigEntries(), Services()
         self.ws, self.js, self.http = [], [], Http()
+        self.events = []
+        self.bus = types_ns(async_fire=lambda name, data=None: self.events.append((name, data)))
 
     async def async_add_executor_job(self, f, *a): return f(*a)
     def async_create_background_task(self, coro, name): return asyncio.ensure_future(coro)
@@ -223,6 +225,23 @@ async def main():
     check(g.lib.allow_cannabis and g.lib.find_mix("Hidden Mix")["cannabis"], "Cannabis-Option der Box-Einträge gilt für den Garten (auch nach Katalog-Update)")
     e1.options["show_cannabis"] = False
     g.configure()
+
+    print("Erntereif-Ereignis")
+    h.events.clear()
+    g._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "growth", "plant": "Basilikum"}], "microgreens": []}})
+    g._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum", "plant_id": 5}],
+                             "microgreens": [{"slot": 2, "phase": "harvest", "plant": "Kresse", "plant_id": 7}]},
+                       "NEU": {"name": "Neu", "slots": [{"slot": 1, "phase": "harvest", "plant": "Minze"}], "microgreens": []}})
+    fired = {(d["box"], d["area"], d["slot"]): d for _, d in h.events}
+    check(len(h.events) == 2 and all(n == "greenbox_harvest_ready" for n, _ in h.events) and set(fired) == {("K", "plants", 1), ("K", "microgreens", 3)}
+          and fired[("K", "plants", 1)] == {"box": "K", "box_name": "Kiste", "area": "plants", "slot": 1, "plant": "Basilikum", "plant_id": 5},
+          "Ereignis je Topf, der erntereif wird (Slot ab 1); neue Boxen melden ihren Bestand nicht")
+    h.events.clear()
+    g._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
+    check(h.events == [], "kein zweites Ereignis für einen Topf, der schon erntereif war")
+    fresh = hub.Garden(h)
+    fresh._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
+    check(h.events == [], "beim Start wird nur der Stand gemerkt")
 
     print("Cloud-Fehler")
     catalog_before = json.dumps(Store.data["greenbox_catalog"], sort_keys=True)

@@ -79,13 +79,22 @@ Options: `style` (`app` or `tiles`), `show_images`, `microgreens` (`auto` or `fa
 Layout like the app: without the microgreens module 4 × 2 round pots; with it, 6 square fields on the left and 4 pots on the right (slots 1, 2, 5, 6).
 If the card does not show up after an update, clear the browser cache (Ctrl+F5).
 
+## Notifications (push to the Home Assistant app)
+- **Harvest ready:** when a pot or microgreens field becomes ready, the integration fires the event `greenbox_harvest_ready` with `box`, `box_name`, `area`
+  (`plants`/`microgreens`), `slot` (from 1), `plant` and `plant_id`. Pots that are already ready when Home Assistant starts are not reported again.
+  Blueprint: [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fharvest_ready.yaml)
+- **Water critical:** the "Water status" sensor of each box turns `low` or `empty`. Blueprint: [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fwater_low.yaml)
+
+Both blueprints ask for your phone (Home Assistant app) and let you edit title and text. Any other automation works too, e.g. trigger on the event and call
+`notify.mobile_app_<phone>`.
+
 ## Services
 Slots count from 1. `box` is optional when you have a single box (name or address otherwise).
 
 | Service | What it does |
 |---|---|
 | `greenbox.plant_package` | Plant a mix (or a custom schedule with typed names) and its plants per slot |
-| `greenbox.plant_slot` / `clear_slot` | Put a plant into a slot / empty it |
+| `greenbox.plant_slot` / `clear_slot` | Put a plant into a slot / empty it. `plant_slot` with `mix` or `germination_days`/`growth_days`/`harvest_days` (and `planted_at`) gives that slot its **own package** (other germination/growth times); local only |
 | `greenbox.remove_package` | Remove the whole package |
 | `greenbox.plant_microgreen` / `clear_microgreen` | Microgreen module (slots 1–6); names not in the catalog need `sprout_days` and `growth_days` |
 | `greenbox.import_from_cloud` | Copy the app's planting for a box into Home Assistant (also the button **Import garden from cloud** on the box; replaces its local planting) |

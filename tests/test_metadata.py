@@ -124,5 +124,19 @@ keys_found = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*")
 check(not keys_found, "kein Google-API-Schlüssel im Repo (Secret-Scanning)" + (f": {keys_found}" if keys_found else ""))
 check(not (PKG / "catalog.json").exists() and not list(ROOT.glob("**/cloud_dump.json")), "kein Herstellerkatalog und keine Kontodaten im Repo")
 check(not any(p.suffix == ".xapk" for p in ROOT.rglob("*") if "_alt" not in p.parts), "keine Hersteller-App im Repo")
+if yaml:
+    class Loader(yaml.SafeLoader):
+        pass
+
+    Loader.add_constructor("!input", lambda loader, node: ("input", loader.construct_scalar(node)))
+    hub_src = (PKG / "hub.py").read_text(encoding="utf-8")
+    for bp in sorted((ROOT / "blueprints" / "automation" / "greenbox").glob("*.yaml")):
+        doc = yaml.load(bp.read_text(encoding="utf-8"), Loader=Loader)
+        meta = doc["blueprint"]
+        used = set(re.findall(r"!input (\w+)", bp.read_text(encoding="utf-8")))
+        check(meta["domain"] == "automation" and meta["source_url"].endswith(f"blueprints/automation/greenbox/{bp.name}") and used <= set(meta["input"]) and doc["triggers"] and doc["actions"],
+              f"Blueprint {bp.name}: Kopf, source_url, alle !input-Verweise definiert")
+        event = next((t.get("event_type") for t in doc["triggers"] if t.get("trigger") == "event"), None)
+        check(event is None or f'"{event}"' in hub_src, f"Blueprint {bp.name}: Ereignisname gibt es im Code")
 print("\n" + ("%d FEHLER" % fails if fails else "alle Tests ok"))
 sys.exit(1 if fails else 0)

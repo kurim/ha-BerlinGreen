@@ -12,6 +12,11 @@ plant_slot:
     box: {selector: {text: {}}}
     slot: {required: true, selector: {number: {min: 1, max: 8, mode: box}}}
     plant: {required: true, selector: {text: {}}}
+    mix: {selector: {text: {}}}
+    germination_days: {selector: {number: {min: 0, max: 400, mode: box}}}
+    growth_days: {selector: {number: {min: 0, max: 400, mode: box}}}
+    harvest_days: {selector: {number: {min: 0, max: 400, mode: box}}}
+    planted_at: {selector: {text: {}}}
 clear_slot:
   fields:
     box: {selector: {text: {}}}

@@ -227,7 +227,7 @@
     },
     "plant_slot": {
       "name": "Slot bepflanzen",
-      "description": "Pflanze in einen Slot des vorhandenen Pakets setzen (1-8).",
+      "description": "Pflanze in einen Slot (1-8). Ohne Mix/Zeitplan gilt das Paket der Box; mit Mix oder eigenem Zeitplan bekommt dieser Slot ein eigenes Paket (andere Keimung/Wachstumsdauer und eigenes Pflanzdatum). Nur lokal.",
       "fields": {
         "box": {
           "name": "Box",
@@ -240,6 +240,26 @@
         "plant": {
           "name": "Pflanze",
           "description": "Name oder ID"
+        },
+        "mix": {
+          "name": "Mix",
+          "description": "Eigenes Paket für diesen Slot: Name oder ID des Mixes"
+        },
+        "germination_days": {
+          "name": "Keimung (Tage)",
+          "description": "Eigenes Paket für diesen Slot (alle drei Werte)"
+        },
+        "growth_days": {
+          "name": "Wachstum (Tage)",
+          "description": "Eigenes Paket für diesen Slot (alle drei Werte)"
+        },
+        "harvest_days": {
+          "name": "Ernte (Tage)",
+          "description": "Eigenes Paket für diesen Slot (alle drei Werte)"
+        },
+        "planted_at": {
+          "name": "Pflanzdatum",
+          "description": "Nur zusammen mit Mix oder Zeitplan. JJJJ-MM-TT, Standard: jetzt"
         }
       }
     },

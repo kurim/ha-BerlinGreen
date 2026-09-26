@@ -20,14 +20,14 @@ const PHASE = {
 const ICON = { empty: "mdi:plus", germination: "mdi:seed-outline", growth: "mdi:sprout", harvest: "mdi:basket-outline", complete: "mdi:check-circle-outline" };
 
 const T = {
-  de: { newPackage: "Neues Paket pflanzen", plant: "Pflanze", mix: "Mix", custom: "Eigener Zeitplan", date: "Pflanzdatum",
+  de: { newPackage: "Neues Paket pflanzen", plant: "Pflanze", mix: "Mix", pkg: "Paket für diesen Slot", currentPkg: "Paket der Box", cloudPkgNote: "Ein eigenes Paket je Slot gibt es nur lokal – zuerst den Stand übernehmen (Button „Garten aus der Cloud übernehmen“).", custom: "Eigener Zeitplan", date: "Pflanzdatum",
         germ: "Keimung (Tage)", growth: "Wachstum (Tage)", harvest: "Ernte (Tage)", save: "Pflanzen", cancel: "Abbrechen",
         change: "Ändern", clear: "Slot leeren", removePkg: "Paket entfernen", confirmPkg: "Das ganze Paket wirklich entfernen?",
         slot: "Slot", micro: "Microgreens", module: "Modul", microOne: "Microgreen", loading: "Lade Katalog ...", err: "Fehler", choose: "– bitte wählen –",
         cloudNote: "Stand aus der Cloud – eine Änderung übernimmt ihn lokal.", plantName: "Pflanzenname", orName: "oder eigener Name", mgName: "Name", sproutDays: "Keimzeit (Tage)", growthMg: "Tage bis zur Ernte",
         noCatalog: "Kein Katalog geladen: Cloud-Konto verbinden (Dienst greenbox.update_catalog) oder Datei greenbox_catalog.json ablegen. Bis dahin geht \"Eigener Zeitplan\" mit frei getipptem Namen.", planted: "belegt", ready: "erntereif",
         readyShort: "erntereif", finished: "Zyklus beendet", harvestIn: (n) => `Ernte in ${n} T`, notFound: "nicht gefunden" },
-  en: { newPackage: "Plant new package", plant: "Plant", mix: "Mix", custom: "Custom schedule", date: "Planting date",
+  en: { newPackage: "Plant new package", plant: "Plant", mix: "Mix", pkg: "Package for this slot", currentPkg: "Box package", cloudPkgNote: "A separate package per slot is only possible locally – take over the state first (button “Import garden from cloud”).", custom: "Custom schedule", date: "Planting date",
         germ: "Germination (days)", growth: "Growth (days)", harvest: "Harvest (days)", save: "Plant", cancel: "Cancel",
         change: "Change", clear: "Empty slot", removePkg: "Remove package", confirmPkg: "Really remove the whole package?",
         slot: "Slot", micro: "Microgreens", module: "Modul", microOne: "Microgreen", loading: "Loading catalog ...", err: "Error", choose: "– please choose –",
@@ -95,7 +95,7 @@ class GreenboxGardenCard extends HTMLElement {
     const edit = this._config.editable && editableSlot ? ` data-kind="${kind}" data-slot="${s.slot}" tabindex="0" role="button"` : "";
     const cls = `slot ${shape}${this._config.editable && editableSlot ? " editable" : ""}`;
     const style = `--c:${p.color};--p:${Math.round(this._progress(s))}`;
-    const title = ` title="${this._esc(s.plant || "")}"`;
+    const title = ` title="${this._esc(s.plant ? (s.package ? `${s.plant} · ${s.package}` : s.plant) : "")}"`;
     if (shape === "pot") {
       return `<div class="${cls}" style="${style}"${title}${edit}>
         <div class="ring"><div class="face">${img || icon}</div><span class="badge">${s.slot + 1}</span></div>
@@ -209,6 +209,15 @@ class GreenboxGardenCard extends HTMLElement {
       body += `<div id="plantpick"></div>` + this._field(t.date, `<input id="date" type="date" value="${today}">`);
       body += `<div class="btns">${this._btn("save", t.save)}${this._btn("cancel", t.cancel)}</div>`;
     } else {
+      if (a.source === "cloud") {
+        body += `<p class="hint">${t.cloudPkgNote}</p>`;   // Cloud-Stand: nur das Paket der Box, kein eigenes Paket je Slot
+      } else {
+        // andere Pflanzen haben andere Keimzeiten: ein Slot kann ein eigenes Paket (anderer Mix oder eigener Zeitplan) bekommen
+        const items = [...cat.mixes.map((m) => ({ ...m, name: `${m.name} (${m.schedule.join("/")})` })), { id: "custom", name: t.custom }];
+        body += this._field(t.pkg, this._select("mix", items, "", `${t.currentPkg}: ${a.mix || t.custom}`));
+        body += `<div id="custom" hidden>${this._field(t.germ, `<input id="d0" type="number" min="0" value="20">`)}${this._field(t.growth, `<input id="d1" type="number" min="0" value="20">`)}${this._field(t.harvest, `<input id="d2" type="number" min="0" value="20">`)}</div>`;
+        body += `<div id="pkgdate" hidden>${this._field(t.date, `<input id="date" type="date" value="${today}">`)}</div>`;
+      }
       body += `<div id="plantpick"></div>`;
       body += `<div class="btns">${this._btn("save", filled ? t.change : t.save)}${filled ? this._btn("clear", t.clear) : ""}${this._btn("removepkg", t.removePkg)}${this._btn("cancel", t.cancel)}</div>`;
     }
@@ -227,25 +236,29 @@ class GreenboxGardenCard extends HTMLElement {
   _fillPlants() {
     const cat = this._cat, ctx = this._ctx, t = this._t;
     const mixSel = this.shadowRoot.getElementById("mix");
-    let mix = null, custom = false;
-    if (mixSel) {
-      custom = mixSel.value === "custom";
-      mix = custom ? null : cat.mixes.find((m) => String(m.id) === mixSel.value);
-      this.shadowRoot.getElementById("custom").hidden = !custom;
-    } else if (ctx.mixId != null) {
-      mix = cat.mixes.find((m) => m.id === ctx.mixId);
+    const sel = mixSel ? mixSel.value : "";
+    const current = ctx.hasPackage && sel === "";   // Pflanze gehört zum Paket der Box
+    let mix = null, custom = false, freeText;
+    if (current) {
+      mix = ctx.mixId != null ? cat.mixes.find((m) => m.id === ctx.mixId) : null;
+      freeText = ctx.mixId == null;
+    } else {
+      custom = sel === "custom";
+      mix = custom ? null : cat.mixes.find((m) => String(m.id) === sel);
+      freeText = custom;   // frei getippte Namen erlaubt der Server nur bei eigenem Zeitplan (Paket ohne Mix)
     }
+    const box = this.shadowRoot.getElementById("custom"), pd = this.shadowRoot.getElementById("pkgdate");
+    if (box) box.hidden = !custom;
+    if (pd) pd.hidden = sel === "";
     const plants = mix && !mix.own ? mix.plants : cat.plants;
-    // frei getippte Namen erlaubt der Server nur bei eigenem Zeitplan (Paket ohne Mix)
-    const freeText = custom || (!mixSel && ctx.mixId == null);
     const pick = plants.length ? this._field(t.plant, this._select("plant", plants, ctx.cur && ctx.cur.plant_id)) : "";
     const free = freeText ? this._field(plants.length ? t.orName : t.plantName, `<input id="plantname" type="text" value="${this._esc((ctx.cur && ctx.mixId == null && ctx.cur.plant) || "")}">`) : "";
     this.shadowRoot.getElementById("plantpick").innerHTML = pick + free;
   }
 
-  _select(id, items, selected) {
+  _select(id, items, selected, blank) {
     const opts = items.map((i) => `<option value="${this._esc(i.id)}"${String(i.id) === String(selected) ? " selected" : ""}>${this._esc(i.name)}</option>`).join("");
-    return `<select id="${id}"><option value="">${this._t.choose}</option>${opts}</select>`;
+    return `<select id="${id}"><option value="">${this._esc(blank || this._t.choose)}</option>${opts}</select>`;
   }
 
   _field(label, control) { return `<label class="field"><span>${this._esc(label)}</span>${control}</label>`; }
@@ -303,7 +316,14 @@ class GreenboxGardenCard extends HTMLElement {
     const picked = this._val("plant");
     const plant = typedPlant || (picked ? Number(picked) : "");
     if (plant === "") return this._error(`${this._t.plant}: ${this._t.choose}`);
-    if (ctx.hasPackage) return this._call("plant_slot", { slot, plant });
+    if (ctx.hasPackage) {
+      const own = this._val("mix");   // "" = Paket der Box
+      if (!own) return this._call("plant_slot", { slot, plant });
+      const one = { slot, plant, ...(date ? { planted_at: date } : {}) };
+      if (own === "custom") Object.assign(one, { germination_days: Number(this._val("d0")), growth_days: Number(this._val("d1")), harvest_days: Number(this._val("d2")) });
+      else one.mix = Number(own);
+      return this._call("plant_slot", one);
+    }
     const mix = this._val("mix");
     if (!mix) return this._error(`${this._t.mix}: ${this._t.choose}`);
     const data = { plants: { [slot]: plant }, ...(date ? { planted_at: date } : {}) };

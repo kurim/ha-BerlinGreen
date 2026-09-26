@@ -1,0 +1,45 @@
+blueprint:
+  name: GreenBox – Erntereif melden / Harvest ready
+  description: >-
+    Schickt eine Push-Nachricht an die Home-Assistant-App, sobald ein Pflanztopf oder ein Microgreens-Feld erntereif wird
+    (Ereignis `greenbox_harvest_ready` der Integration). / Sends a push notification to the Home Assistant app when a pot or
+    microgreens field becomes ready to harvest.
+  domain: automation
+  source_url: https://github.com/kurim/ha-BerlinGreen/blob/main/blueprints/automation/greenbox/harvest_ready.yaml
+  input:
+    notify_device:
+      name: Handy / Mobile device
+      description: Gerät mit der Home-Assistant-App. / Device running the Home Assistant app.
+      selector:
+        device:
+          integration: mobile_app
+    title:
+      name: Titel / Title
+      default: "GreenBox: Ernte"
+      selector:
+        text: {}
+    message:
+      name: Text / Message
+      description: >-
+        Vorlage. Verfügbar: `trigger.event.data.plant`, `.box_name`, `.slot` (ab 1), `.area` (plants oder microgreens).
+      default: >-
+        {{ trigger.event.data.plant | default('Pflanze', true) }} ist erntereif
+        ({{ trigger.event.data.box_name }}, {{ 'Microgreens-Feld' if trigger.event.data.area == 'microgreens' else 'Slot' }}
+        {{ trigger.event.data.slot }}).
+      selector:
+        text:
+          multiline: true
+
+mode: queued
+max_exceeded: silent
+
+triggers:
+  - trigger: event
+    event_type: greenbox_harvest_ready
+
+actions:
+  - device_id: !input notify_device
+    domain: mobile_app
+    type: notify
+    title: !input title
+    message: !input message

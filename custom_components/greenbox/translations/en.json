@@ -227,7 +227,7 @@
     },
     "plant_slot": {
       "name": "Plant slot",
-      "description": "Put a plant into a slot of the current package (1-8).",
+      "description": "Put a plant into a slot (1-8). Without mix or schedule the box's package applies; with a mix or a custom schedule this slot gets its own package (different germination/growth times and planting date). Local only.",
       "fields": {
         "box": {
           "name": "Box",
@@ -240,6 +240,26 @@
         "plant": {
           "name": "Pflanze",
           "description": "Name or ID"
+        },
+        "mix": {
+          "name": "Mix",
+          "description": "Own package for this slot: name or ID of the mix"
+        },
+        "germination_days": {
+          "name": "Keimung (Tage)",
+          "description": "Own package for this slot (all three values)"
+        },
+        "growth_days": {
+          "name": "Wachstum (Tage)",
+          "description": "Own package for this slot (all three values)"
+        },
+        "harvest_days": {
+          "name": "Ernte (Tage)",
+          "description": "Own package for this slot (all three values)"
+        },
+        "planted_at": {
+          "name": "Pflanzdatum",
+          "description": "Only together with mix or schedule. YYYY-MM-DD, default: now"
         }
       }
     },

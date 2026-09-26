@@ -4,9 +4,11 @@ Cloud-Format, damit garden.build_box() dieselben Phasenregeln anwendet.
 Speicherformat je Box:
   {"name": str,
    "package": None | {"mix_id": int|None, "mix_name": {de,en}, "schedule": [Keimung, Wachstum, Erntefenster],
-                       "planted_at": iso, "slots": {"0": {"plant_id": int, "plant": {de,en}, "photo": url}}},
+                       "planted_at": iso, "slots": {"0": {"plant_id": int, "plant": {de,en}, "photo": url,
+                                                          "pkg": optional {"mix_id", "mix_name", "schedule", "planted_at"}}}},
    "microgreens": {"0": {"microgreen_id": int, "name": {de,en}, "planted_on": "YYYY-MM-DD", "sprout_days": 2,
                           "growth_days": 8, "photo": url}}}
+"pkg" am Slot = eigenes Paket nur für diesen Slot (anderer Mix/Zeitplan/Pflanzdatum); nur lokal möglich, in der App gilt ein Paket je Box.
 Slots werden intern ab 0 gezählt (wie in der Cloud), in Diensten ab 1."""
 from __future__ import annotations
 
@@ -62,6 +64,16 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _spec(lib: Library, mix: Any, schedule: list[float] | None) -> tuple[Any, dict, list[float], list[int] | None, bool]:
+    """Mix (Name/ID) oder eigener Zeitplan -> (Mix-ID, Mix-Name, Zeitplan, erlaubte Pflanzen, freier Name erlaubt)."""
+    mix_item = lib.find_mix(mix) if mix is not None else None
+    if mix_item:
+        return mix_item["id"], mix_item["name"], list(mix_item["schedule"]), (None if mix_item.get("own") else mix_item["plants"]), False
+    if len(schedule) != 3 or any(x < 0 for x in schedule):
+        raise GardenError("Der Zeitplan braucht drei Werte >= 0 (Keimung, Wachstum, Ernte)")
+    return None, {"de": "Eigener Zeitplan", "en": "Custom schedule"}, [float(x) for x in schedule], None, True
+
+
 def plant_package(box: dict, lib: Library, *, mix: Any = None, schedule: list[float] | None = None,
                   slots: dict[int, Any] | None = None, planted_at: str | None = None) -> None:
     """Neues Mix-Paket (ersetzt ein vorhandenes). Entweder `mix` (Name/ID) oder ein eigener `schedule`."""
@@ -69,30 +81,40 @@ def plant_package(box: dict, lib: Library, *, mix: Any = None, schedule: list[fl
         raise GardenError("Bitte einen Mix angeben oder einen eigenen Zeitplan (Keimung/Wachstum/Ernte in Tagen)")
     if mix is not None and schedule is not None:
         raise GardenError("Entweder Mix ODER eigener Zeitplan, nicht beides")
-    mix_item = lib.find_mix(mix) if mix is not None else None
-    if mix_item:
-        sched, mix_id, mix_name = list(mix_item["schedule"]), mix_item["id"], mix_item["name"]
-        allowed = None if mix_item.get("own") else mix_item["plants"]
-    else:
-        if len(schedule) != 3 or any(x < 0 for x in schedule):
-            raise GardenError("Der Zeitplan braucht drei Werte >= 0 (Keimung, Wachstum, Ernte)")
-        sched, mix_id, mix_name, allowed = [float(x) for x in schedule], None, {"de": "Eigener Zeitplan", "en": "Custom schedule"}, None
+    mix_id, mix_name, sched, allowed, free = _spec(lib, mix, schedule)
     chosen: dict[str, Any] = {}
     for slot_no, ref in (slots or {}).items():
         idx = _slot(slot_no, PLANT_SLOTS, "Pflanz")
         _check_plant_slot(box, idx)
-        chosen[str(idx)] = _resolve_plant(lib, ref, allowed, free_text=mix_item is None)
+        chosen[str(idx)] = _resolve_plant(lib, ref, allowed, free_text=free)
     box["package"] = {"mix_id": mix_id, "mix_name": mix_name, "schedule": sched, "planted_at": planted_at or _now_iso(), "slots": chosen}
 
 
-def plant_slot(box: dict, lib: Library, slot: int, plant: Any) -> None:
-    pkg = box.get("package")
-    if not pkg:
-        raise GardenError("Es ist noch kein Paket gepflanzt - zuerst 'plant_package' verwenden")
-    mix = next((m for m in lib.mixes if m["id"] == pkg["mix_id"]), None) if pkg["mix_id"] is not None else None
-    allowed = None if (mix is None or mix.get("own")) else mix["plants"]
+def plant_slot(box: dict, lib: Library, slot: int, plant: Any, *, mix: Any = None, schedule: list[float] | None = None,
+               planted_at: str | None = None) -> None:
+    """Pflanze in einen Slot. Ohne mix/schedule gilt das Paket der Box; mit mix oder eigenem Zeitplan bekommt der Slot ein eigenes
+    Paket (andere Keimung/Wachstumsdauer, eigenes Pflanzdatum). Gibt es noch kein Paket, wird es das Paket der Box."""
+    if mix is not None and schedule is not None:
+        raise GardenError("Entweder Mix ODER eigener Zeitplan, nicht beides")
+    if mix is None and schedule is None and planted_at is not None:
+        raise GardenError("Ein Pflanzdatum gilt nur zusammen mit einem Mix oder eigenem Zeitplan für den Slot")
     idx = _slot(slot, PLANT_SLOTS, "Pflanz")
     _check_plant_slot(box, idx)
+    pkg = box.get("package")
+    if mix is not None or schedule is not None:
+        mix_id, mix_name, sched, allowed, free = _spec(lib, mix, schedule)
+        entry = _resolve_plant(lib, plant, allowed, free_text=free)
+        spec = {"mix_id": mix_id, "mix_name": mix_name, "schedule": sched, "planted_at": planted_at or _now_iso()}
+        if not pkg:
+            box["package"] = {**spec, "slots": {str(idx): entry}}
+            return
+        entry["pkg"] = spec
+        pkg["slots"][str(idx)] = entry
+        return
+    if not pkg:
+        raise GardenError("Es ist noch kein Paket gepflanzt - zuerst 'plant_package' verwenden (oder beim Slot einen Mix bzw. Zeitplan angeben)")
+    mix_item = next((m for m in lib.mixes if m["id"] == pkg["mix_id"]), None) if pkg["mix_id"] is not None else None
+    allowed = None if (mix_item is None or mix_item.get("own")) else mix_item["plants"]
     pkg["slots"][str(idx)] = _resolve_plant(lib, plant, allowed, free_text=pkg["mix_id"] is None)
 
 
@@ -152,12 +174,18 @@ def to_cloud_shape(key: str, box: dict) -> dict[str, Any]:
     pkg = box.get("package")
     packages = []
     if pkg:
-        packages.append({
-            "id": None, "planted_at": pkg["planted_at"], "layout": "EightSlot",
-            "mix": {"id": pkg["mix_id"], "name": pkg["mix_name"], "growth_speed": pkg["schedule"]},
-            "planted": [{"slot": int(s), "plant": {"id": e["plant_id"], "name": e["plant"], "photo": e.get("photo")}}
-                        for s, e in sorted(pkg["slots"].items(), key=lambda kv: int(kv[0]))],
-        })
+        groups: dict[Any, dict[str, Any]] = {}  # Slots mit eigenem Paket werden je Paket zusammengefasst (Cloud-Format kennt mehrere)
+        for s, e in sorted(pkg["slots"].items(), key=lambda kv: int(kv[0])):
+            spec = e.get("pkg") or pkg
+            key = None if spec is pkg else (spec["mix_id"], tuple(spec["schedule"]), spec["planted_at"])
+            group = groups.setdefault(key, {
+                "id": None, "planted_at": spec["planted_at"], "layout": "EightSlot",
+                "mix": {"id": spec["mix_id"], "name": spec["mix_name"], "growth_speed": spec["schedule"]}, "planted": []})
+            group["planted"].append({"slot": int(s), "plant": {"id": e["plant_id"], "name": e["plant"], "photo": e.get("photo")}})
+        if not groups:  # Paket ohne Pflanzen
+            groups[None] = {"id": None, "planted_at": pkg["planted_at"], "layout": "EightSlot",
+                            "mix": {"id": pkg["mix_id"], "name": pkg["mix_name"], "growth_speed": pkg["schedule"]}, "planted": []}
+        packages = [groups[k] for k in ([None] if None in groups else []) + [k for k in groups if k is not None]]
     mg = [{"slot": int(s), "plantedOnDay": e["planted_on"],
            "microgreen": {"id": e["microgreen_id"], "growthTimeDays": e["growth_days"], "sproutTimeDays": e["sprout_days"],
                           "name": e["name"], "encyclopedia": [{"image": e.get("photo")}]}}
@@ -185,6 +213,15 @@ def from_cloud_shape(raw: dict[str, Any]) -> dict[str, Any]:
             "schedule": [float(x) for x in (mix.get("growth_speed") or DEFAULT_SCHEDULE)][:3],
             "planted_at": pkg.get("planted_at") or _now_iso(), "slots": slots,
         }
+        for extra in pkgs[1:]:  # weitere Pakete der Cloud werden zu Slots mit eigenem Paket
+            emix = extra.get("mix") or {}
+            spec = {"mix_id": emix.get("id"), "mix_name": emix.get("name") or {"de": "Eigene Pflanzen", "en": "Own plants"},
+                    "schedule": [float(x) for x in (emix.get("growth_speed") or DEFAULT_SCHEDULE)][:3],
+                    "planted_at": extra.get("planted_at") or _now_iso()}
+            for item in extra.get("planted") or []:
+                plant = item.get("plant") or {}
+                name = plant.get("name") or ({"de": plant["user_provided_name"]} if plant.get("user_provided_name") else None)
+                slots.setdefault(str(item["slot"]), {"plant_id": plant.get("id"), "plant": name, "photo": plant.get("photo"), "pkg": spec})
     for cfg in raw.get("microgreen_configs") or []:
         for m in cfg.get("planted_microgreens") or []:
             mg = m.get("microgreen") or {}

@@ -40,7 +40,12 @@ SERVICES: dict[str, vol.Schema] = {
         vol.Optional("plants"): {vol.Coerce(int): vol.Any(cv.string, int)},
         vol.Optional("planted_at"): cv.string,
     }),
-    "plant_slot": vol.Schema({**BOX, vol.Required("slot"): vol.Coerce(int), vol.Required("plant"): vol.Any(cv.string, int)}),
+    "plant_slot": vol.Schema({
+        **BOX, vol.Required("slot"): vol.Coerce(int), vol.Required("plant"): vol.Any(cv.string, int),
+        vol.Optional("mix"): vol.Any(cv.string, int),
+        vol.Optional("germination_days"): vol.Coerce(float), vol.Optional("growth_days"): vol.Coerce(float),
+        vol.Optional("harvest_days"): vol.Coerce(float), vol.Optional("planted_at"): cv.string,
+    }),
     "clear_slot": vol.Schema({**BOX, vol.Required("slot"): vol.Coerce(int)}),
     "remove_package": vol.Schema({**BOX}),
     "plant_microgreen": vol.Schema({**BOX, vol.Required("slot"): vol.Coerce(int), vol.Required("microgreen"): vol.Any(cv.string, int),

@@ -131,6 +131,7 @@ def build_box(box: dict[str, Any], now: datetime, language: str = "de", photo: C
                 "plant": plant.get("user_provided_name") or name_of(plant.get("name"), language),
                 "plant_id": plant.get("id"),
                 "image": photo(plant.get("photo")),
+                "package": name_of(mix.get("name"), language),
                 "planted_at": planted_at.isoformat(),
                 **info,
             }

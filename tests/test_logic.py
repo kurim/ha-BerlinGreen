@@ -71,6 +71,33 @@ loc.clear_slot(box, 2)
 check(sorted(box["package"]["slots"]) == ["0", "3", "4"] and raises(lambda: loc.clear_slot(box, 2), "bereits leer"), "Slot setzen und leeren")
 check(raises(lambda: loc.plant_slot(loc.new_box("n"), lib, 1, "Basil"), "kein Paket"), "ohne Paket kein Slot")
 
+print("Eigenes Paket je Slot (nur lokal)")
+b3 = loc.new_box("B3")
+loc.plant_package(b3, lib, mix="Test Herbs", slots={1: "Cilantro"}, planted_at=ago)
+loc.plant_slot(b3, lib, 2, "Lettuce", mix="Test Salad", planted_at=(NOW - timedelta(days=12)).isoformat())
+loc.plant_slot(b3, lib, 3, "Nachtkerze", schedule=[4, 9, 6], planted_at=NOW.isoformat())
+check(b3["package"]["slots"]["1"]["pkg"]["mix_id"] == 2 and b3["package"]["slots"]["2"]["pkg"]["mix_id"] is None and "pkg" not in b3["package"]["slots"]["0"],
+      "Slot mit anderem Mix oder eigenem Zeitplan bekommt ein eigenes Paket, die anderen bleiben beim Paket der Box")
+v3 = garden.build_box(loc.to_cloud_shape("K3", b3), NOW)
+s = v3["slots"]
+check(len(loc.to_cloud_shape("K3", b3)["packages"]) == 3 and s[0]["package"] == "Testkräuter" and s[1]["package"] == "Testsalat" and s[2]["package"] == "Eigener Zeitplan",
+      "drei Pakete, jeder Slot kennt seins")
+check(s[0]["phase"] == "germination" and abs(s[0]["days_to_harvest"] - 32) < 0.1 and s[1]["phase"] == "growth" and abs(s[1]["days_to_harvest"] - 24) < 0.1
+      and s[2]["phase"] == "germination" and abs(s[2]["days_to_harvest"] - 13) < 0.1, "jeder Slot läuft nach seinem eigenen Zeitplan")
+check(v3["mix"] == "Testkräuter" and v3["planted_count"] == 3, "Box zeigt weiter das Hauptpaket")
+loc.plant_slot(b3, lib, 2, "Lettuce", mix="Test Salad")  # gleicher Mix, neues Datum
+loc.plant_slot(b3, lib, 2, "Cilantro")  # ohne Angabe: zurück zum Paket der Box
+check("pkg" not in b3["package"]["slots"]["1"], "ohne Mix/Zeitplan gehört der Slot wieder zum Paket der Box")
+check(raises(lambda: loc.plant_slot(b3, lib, 4, "Lettuce", mix="Test Herbs"), "gehört nicht zu diesem Mix"), "Pflanze muss zum gewählten Mix passen")
+check(raises(lambda: loc.plant_slot(b3, lib, 4, "Basil", mix=1, schedule=[1, 2, 3]), "nicht beides") and raises(lambda: loc.plant_slot(b3, lib, 4, "Basil", planted_at=ago), "nur zusammen"), "Mix und Zeitplan schließen sich aus; Datum braucht Mix oder Zeitplan")
+b4 = loc.new_box("B4")
+loc.plant_slot(b4, lib, 1, "Basil", mix="Test Herbs")
+check(b4["package"]["mix_id"] == 1 and "pkg" not in b4["package"]["slots"]["0"], "ohne Paket wird der Slot mit Mix zum Paket der Box")
+back = loc.from_cloud_shape(loc.to_cloud_shape("K3", b3))
+check(back["package"]["slots"]["2"]["pkg"]["schedule"] == [4.0, 9.0, 6.0], "Umwandlung hin und zurück behält das Slot-Paket")
+loc.remove_package(b3)
+check(loc.to_cloud_shape("K3", b3)["packages"] == [], "Paket entfernen entfernt auch die Slot-Pakete")
+
 print("Eigener Zeitplan und freie Namen")
 b2 = loc.new_box("B2")
 loc.plant_package(b2, lib, schedule=[5, 10, 7], slots={1: "Tomate Sorte X", 2: "Basil"})
