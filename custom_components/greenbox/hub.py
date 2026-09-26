@@ -363,7 +363,7 @@ class Garden:
             key = self.resolve(data.get("box"))
             if self.synced(key):
                 if name == "import_from_cloud":
-                    raise GardenError("Diese Box ist mit der Cloud synchronisiert: ihr Stand ist schon der der Cloud")
+                    raise GardenError("Diese Box ist mit der Cloud synchronisiert: ihr Stand ist schon der Stand der Cloud")
                 await self._cloud_write(name, key, data)
                 return
             if name == "import_from_cloud":

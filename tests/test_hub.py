@@ -261,6 +261,7 @@ async def main():
     await g.async_set_sync(MAC1, True)
     v = g.coordinator.data[MAC1]
     check(g.synced(MAC1) and v["source"] == "cloud" and v["sync"] is True and Store.data["greenbox_garden_local"]["cloud_sync"] == [MAC1], "Cloud-Modus an: Stand kommt aus der Cloud, wird gespeichert")
+    check(not imp.available, "Cloud-Modus an: Button 'Garten aus der Cloud übernehmen' ist nicht verfügbar")
     await call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Cilantro"}})
     check(cloud.ops == [("plant_new", {"boxId": "u" + MAC1, "mixId": 1, "plantedAt": cloud.ops[0][1]["plantedAt"], "layout": "EightSlot",
                                          "planted": [{"slot": 0, "plant_id": 102}]})], "plant_package: neues Paket in die Cloud (ohne altes Paket kein Abschließen)")
@@ -338,6 +339,7 @@ async def main():
     cloud.mutate_error = None
     check(json.dumps(g.local["boxes"][MAC1], sort_keys=True) == local_before, "auch nach Fehlern bleibt der lokale Stand unverändert")
     await g.async_set_sync(MAC1, False)
+    check(imp.available, "Cloud-Modus aus: Button wieder verfügbar")
     check(not g.synced(MAC1) and g.coordinator.data[MAC1]["source"] == "local" and g.coordinator.data[MAC1]["sync"] is False and Store.data["greenbox_garden_local"]["cloud_sync"] == [],
           "Cloud-Modus aus: wieder der lokale Stand")
     cloud.boxes = None

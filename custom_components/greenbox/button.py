@@ -49,7 +49,7 @@ class UpdateCatalog(ButtonEntity):
 
 
 class ImportFromCloud(CoordinatorEntity, ButtonEntity):
-    """Übernimmt die Bepflanzung dieser Box aus dem Cloud-Konto (überschreibt den lokalen Garten). Nur wählbar, wenn die Cloud die Box kennt."""
+    """Übernimmt die Bepflanzung dieser Box aus dem Cloud-Konto (überschreibt den lokalen Garten). Nur wählbar, wenn die Cloud die Box kennt und der Cloud-Modus aus ist."""
 
     _attr_has_entity_name = True
     _attr_translation_key = "import_from_cloud"
@@ -63,7 +63,7 @@ class ImportFromCloud(CoordinatorEntity, ButtonEntity):
 
     @property
     def available(self) -> bool:
-        return self._address in self._garden.raw_cloud
+        return self._address in self._garden.raw_cloud and not self._garden.synced(self._address)  # im Cloud-Modus gibt es nichts zu übernehmen
 
     async def async_press(self) -> None:
         await self._garden.call("import_from_cloud", {"box": self._address})

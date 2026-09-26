@@ -3,6 +3,12 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.11.1] - 2026-09-26
+
+### Fixed
+- Der Button „Garten aus der Cloud übernehmen“ ist im Cloud-Modus nicht mehr verfügbar (dort gibt es nichts zu übernehmen; ein Druck erzeugte nur einen Fehler im Log).
+  Die Fehlermeldung des Dienstes hatte einen doppelten Wortlaut.
+
 ## [0.11.0] - 2026-09-26
 
 ### Added
