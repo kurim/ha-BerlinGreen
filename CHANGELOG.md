@@ -3,6 +3,13 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.8.0] - 2026-09-26
+
+### Added
+- Button **Garten aus der Cloud übernehmen** an jeder Bluetooth-Box (wie `greenbox.import_from_cloud`, aber optional per Knopfdruck). Er ersetzt die
+  lokale Bepflanzung dieser Box durch den Stand aus der App und ist nur wählbar, wenn das Cloud-Konto die Box kennt. / Optional button on each
+  Bluetooth box that copies the app's planting into Home Assistant.
+
 ## [0.7.1] - 2026-09-26
 
 ### Fixed

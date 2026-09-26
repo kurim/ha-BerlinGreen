@@ -17,6 +17,7 @@ class FakeDevice:
 
     def __init__(self, hass, address, name):
         self.address, self.name = address, name
+        self.state = type("S", (), {"firmware_name": "1.0"})()
 
     async def async_start(self):
         FakeDevice.started.append(self.address)
@@ -183,6 +184,34 @@ async def main():
     check(cloud.catalog_calls == 1, "danach nicht erneut")
     check(g.coordinator.data[MAC1]["source"] == "local" and g.coordinator.data[CLOUD_ONLY]["source"] == "cloud" and g.coordinator.data[CLOUD_ONLY]["ble"] is False, "lokale Bepflanzung hat Vorrang, Cloud-Box ohne Bluetooth zeigt den Cloud-Stand")
     check(h.config_entries.updated and h.config_entries.updated[-1]["refresh_token"] == "ROTATED", "erneuertes Token landet im Cloud-Eintrag")
+    print("Garten aus der Cloud übernehmen (Button)")
+    import types as _t
+    sys.modules["homeassistant.const"].EntityCategory = _t.SimpleNamespace(CONFIG="config", DIAGNOSTIC="diagnostic")
+    _stubs.mod("homeassistant.components.button", ButtonEntity=object)
+    _stubs.mod("homeassistant.helpers.device_registry", DeviceInfo=dict)
+    _stubs.mod("homeassistant.helpers.entity", Entity=object)
+    _stubs.mod("homeassistant.helpers.entity_platform", AddEntitiesCallback=object)
+
+    class CoordinatorEntity:
+        def __init__(self, coordinator): self.coordinator = coordinator
+    sys.modules["homeassistant.helpers.update_coordinator"].CoordinatorEntity = CoordinatorEntity
+    button = importlib.import_module("greenbox.button")
+    added = []
+    await button.async_setup_entry(h, e1, added.extend)
+    imp = next(b for b in added if isinstance(b, button.ImportFromCloud))
+    check(imp._attr_unique_id == f"{MAC1}_import_from_cloud" and imp._attr_device_info == {"identifiers": {("greenbox", MAC1)}}, "Button gehört zum Gerät der Bluetooth-Box")
+    check(imp.available, "verfügbar, weil die Cloud die Box kennt")
+    import copy as _c
+    snapshot, before = _c.deepcopy(g.local), g.coordinator.data[MAC1]["source"]
+    await imp.async_press()
+    check(before == "local" and g.local["boxes"][MAC1] and g.coordinator.data[MAC1]["name"] == "Cloud name", "Knopfdruck übernimmt den Stand der Cloud in den lokalen Garten")
+    g.local = snapshot  # übrige Tests erwarten die lokale Bepflanzung
+    await g.store.async_save(g.local)
+    g.refresh()
+    await button.async_setup_entry(h, e2, added.extend)
+    imp2 = [b for b in added if isinstance(b, button.ImportFromCloud)][1]
+    raw = g.raw_cloud.pop(MAC2, None)
+    check(not imp2.available and await expect(imp2.async_press(), "nicht in der Cloud"), "Box ohne Cloud-Eintrag: Button nicht verfügbar, Druck meldet es klar")
     await call("plant_package", {"box": "GreenBoxTwo", "mix": "Test Herbs", "plants": {1: "Cilantro"}})
     check(g.coordinator.data[MAC2]["mix"] == "Testkräuter" and g.coordinator.data[MAC2]["planted_count"] == 1, "mit Katalog: Mix und Katalogpflanze")
     check(await expect(call("plant_slot", {"box": "GreenBoxTwo", "slot": 2, "plant": "Lettuce"}), "gehört nicht zu diesem Mix"), "Mix-Regeln gelten weiter")

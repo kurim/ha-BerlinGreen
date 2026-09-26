@@ -90,7 +90,7 @@ Slots zählen ab 1. `box` ist bei nur einer Box optional (sonst Name oder Adress
 | `greenbox.plant_slot` / `clear_slot` | Pflanze in einen Slot setzen / Slot leeren |
 | `greenbox.remove_package` | Ganzes Paket entfernen |
 | `greenbox.plant_microgreen` / `clear_microgreen` | Microgreens-Modul (Slots 1–6); Namen ohne Katalogeintrag brauchen `sprout_days` und `growth_days` |
-| `greenbox.import_from_cloud` | Bepflanzung der App für eine Box in Home Assistant übernehmen |
+| `greenbox.import_from_cloud` | Bepflanzung der App für eine Box in Home Assistant übernehmen (auch als Button **Garten aus der Cloud übernehmen** an der Box; ersetzt deren lokale Bepflanzung) |
 | `greenbox.update_catalog` | Pflanzenbibliothek und Fotos aus dem Cloud-Konto neu laden |
 
 Regeln wie in der App: Ein Mix hat einen gemeinsamen Zeitplan und erlaubt nur seine eigenen Pflanzen; solange das Microgreens-Modul benutzt wird, sind für Pflanzen nur die Slots 1, 2, 5 und 6 frei.
