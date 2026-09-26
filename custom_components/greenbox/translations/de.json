@@ -7,7 +7,7 @@
         "description": "Was möchtest du hinzufügen? Das Cloud-Konto ist optional: ohne läuft alles lokal.",
         "menu_options": {
           "ble": "Bluetooth-Box",
-          "cloud": "Cloud-Konto der App (optional, nur lesend)"
+          "cloud": "Cloud-Konto der App (optional)"
         }
       },
       "ble": {
@@ -22,7 +22,7 @@
       },
       "cloud": {
         "title": "Cloud-Konto",
-        "description": "Anmeldung mit dem Konto der Berlin-Green-App. Nur das Anmelde-Token wird gespeichert, nicht das Passwort; Anmeldung über Google/Apple wird nicht unterstützt. Die Cloud wird nur gelesen. Den API-Schlüssel der App liest `tools/extract_key.py` aus der App-Datei (APK/XAPK) aus, siehe die Anleitung im Repository.",
+        "description": "Anmeldung mit dem Konto der Berlin-Green-App. Nur das Anmelde-Token wird gespeichert, nicht das Passwort; Anmeldung über Google/Apple wird nicht unterstützt. Die Cloud wird nur gelesen, außer du schaltest eine Box in den Cloud-Modus (Schalter „Mit Cloud synchronisieren“). Den API-Schlüssel der App liest `tools/extract_key.py` aus der App-Datei (APK/XAPK) aus, siehe die Anleitung im Repository.",
         "data": {
           "email": "E-Mail",
           "password": "Passwort",
@@ -158,6 +158,9 @@
     "switch": {
       "blink_on_low_water": {
         "name": "Bei wenig Wasser blinken"
+      },
+      "cloud_sync": {
+        "name": "Mit Cloud synchronisieren"
       }
     },
     "time": {

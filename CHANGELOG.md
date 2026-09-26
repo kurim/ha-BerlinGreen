@@ -3,6 +3,13 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.10.0] - 2026-09-26
+
+### Added
+- **Cloud-Modus je Box** (Schalter „Mit Cloud synchronisieren“, standardmäßig aus): Pflanz-Dienste gehen an die Cloud, die App zeigt dasselbe, die Box zeigt den Stand der Cloud.
+  Es gelten die Regeln der App (ein Paket je Box, nur Katalog-Pflanzen, Slots nur ersetzen). Die Operationen stammen aus dem Code der App und sind nicht bei jedem Konto
+  geprüft. Lokaler Stand bleibt beim Ein- und Ausschalten erhalten. / Optional per-box cloud mode: planting changes are written to the Berlin Green account.
+
 ## [0.9.0] - 2026-09-26
 
 ### Added

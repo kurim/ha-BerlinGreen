@@ -1,4 +1,4 @@
-"""Garten-Logik für alle GreenBoxen: lokaler Speicher, Katalog, optionale Cloud (nur lesend), Ansicht je Box, Dienste."""
+"""Garten-Logik für alle GreenBoxen: lokaler Speicher, Katalog, optionale Cloud (lesen; schreiben nur im Cloud-Modus einer Box), Ansicht je Box, Dienste."""
 from __future__ import annotations
 
 import asyncio
@@ -59,6 +59,7 @@ class Garden:
     async def async_init(self) -> None:
         self.local = await self.store.async_load() or {"boxes": {}}
         self.local.setdefault("boxes", {})
+        self.local.setdefault("cloud_sync", [])
         self.lib = await self._load_catalog()
         self.photo_names = await self.hass.async_add_executor_job(photos.existing, self.photo_dir)
         self.configure()
@@ -207,16 +208,109 @@ class Garden:
         out: dict[str, dict[str, Any]] = {}
         for key in dict.fromkeys([*self.raw_cloud, *ble, *self.local["boxes"]]):
             rec = self.local["boxes"].get(key)
-            if rec:
+            if self.synced(key):
+                shape, source = self.raw_cloud[key], "cloud"
+            elif rec:
                 shape, source = local.to_cloud_shape(key, rec), "local"
             elif key in self.raw_cloud:
                 shape, source = self.raw_cloud[key], "cloud"
             else:
                 shape, source = local.to_cloud_shape(key, local.new_box(ble.get(key, key))), "local"
             view = build_box(shape, now, self.language, self.local_photo)
-            view.update(source=source, box_key=key, ble=key in ble, cloud_id=(self.raw_cloud.get(key) or {}).get("id"))
+            view.update(source=source, box_key=key, ble=key in ble, cloud_id=(self.raw_cloud.get(key) or {}).get("id"), sync=self.synced(key))
             out[key] = view
         return out
+
+    # --- Cloud-Modus: Änderungen dieser Box gehen an die Cloud (und damit in die App) -----------------
+    def synced(self, key: str) -> bool:
+        """Cloud-Modus ist für die Box an UND die Cloud kennt sie (sonst gilt vorübergehend der lokale Stand)."""
+        return key in self.local.get("cloud_sync", []) and key in self.raw_cloud
+
+    async def async_set_sync(self, key: str, on: bool) -> None:
+        if on and (self.cloud is None or key not in self.raw_cloud):
+            raise ServiceValidationError("Dafür muss das Cloud-Konto verbunden sein und die Box kennen")
+        keys = self.local.setdefault("cloud_sync", [])
+        if on and key not in keys:
+            keys.append(key)
+        elif not on and key in keys:
+            keys.remove(key)
+        await self.store.async_save(self.local)
+        self.refresh()
+
+    async def _cloud_write(self, name: str, key: str, data: dict[str, Any]) -> None:
+        """Führt einen Dienst im Cloud-Modus aus: prüfen (wie lokal), an die Cloud schicken, Stand neu laden."""
+        raw = self.raw_cloud[key]
+        if self.cloud is None:
+            raise GardenError("Cloud-Konto nicht verbunden")
+        lib, temp = self.lib, local.from_cloud_shape(raw)  # Kopie des Cloud-Stands: dieselben Regeln/Fehlermeldungen wie lokal
+        packages = [p for p in raw.get("packages") or [] if p.get("id") is not None]
+        configs = [c for c in raw.get("microgreen_configs") or [] if c.get("id")]
+        ops: list[tuple[str, dict[str, Any]]] = []
+        own = "Im Cloud-Modus gibt es wie in der App ein Paket je Box und nur Katalog-Pflanzen"
+        if name == "plant_package":
+            if data.get("mix") is None:
+                raise GardenError(f"{own}: bitte einen Mix angeben (kein eigener Zeitplan)")
+            local.plant_package(temp, lib, mix=data["mix"], slots=data.get("plants"), planted_at=self._when(data.get("planted_at")))
+            pkg = temp["package"]
+            planted = [{"slot": int(s), "plant_id": e["plant_id"]} for s, e in sorted(pkg["slots"].items(), key=lambda kv: int(kv[0]))]
+            if not planted or any(p["plant_id"] is None for p in planted):
+                raise GardenError(f"{own}: mindestens eine Katalog-Pflanze angeben")
+            layout = (packages[0].get("layout") if packages else None) or "EightSlot"
+            ops.append(("plant_new", {"boxId": raw["id"], "mixId": pkg["mix_id"], "plantedAt": pkg["planted_at"], "layout": layout, "planted": planted}))
+            if packages:  # erst das neue Paket anlegen, dann das alte abschließen: bei einem Fehler geht nichts verloren
+                ops.append(("remove_packages", {"ids": [p["id"] for p in packages], "removedAt": local._now_iso()}))
+        elif name == "plant_slot":
+            if any(data.get(k) is not None for k in ("mix", "germination_days", "growth_days", "harvest_days", "planted_at")):
+                raise GardenError(f"{own}: ein eigenes Paket je Slot gibt es nur im lokalen Modus")
+            if not packages:
+                raise GardenError("Es ist noch kein Paket gepflanzt - zuerst 'plant_package' verwenden")
+            local.plant_slot(temp, lib, data["slot"], data["plant"])
+            idx = int(data["slot"]) - 1
+            plant_id = temp["package"]["slots"][str(idx)]["plant_id"]
+            if plant_id is None:
+                raise GardenError(f"{own}: '{data['plant']}' ist keine Katalog-Pflanze")
+            holder = next((p for p in packages if any(i.get("slot") == idx for i in p.get("planted") or [])), None)
+            ops.append(("update_slot" if holder else "insert_slot", {"packageId": (holder or packages[0])["id"], "slot": idx, "plantId": plant_id}))
+        elif name == "clear_slot":
+            raise GardenError("Im Cloud-Modus lassen sich Slots nur ersetzen (die App kann sie auch nicht leeren); zum Leeren das Paket entfernen")
+        elif name == "remove_package":
+            if not packages:
+                raise GardenError("Es ist kein Paket gepflanzt")
+            ops.append(("remove_packages", {"ids": [p["id"] for p in packages], "removedAt": local._now_iso()}))
+        elif name == "plant_microgreen":
+            local.plant_microgreen(temp, lib, data["slot"], data["microgreen"], self._day(data.get("planted_on")), data.get("sprout_days"), data.get("growth_days"))
+            idx = int(data["slot"]) - 1
+            item = temp["microgreens"][str(idx)]
+            if item["microgreen_id"] is None:
+                raise GardenError(f"{own}: '{data['microgreen']}' ist kein Katalog-Microgreen")
+            new = {"microgreen_id": item["microgreen_id"], "plantedOnDay": item["planted_on"], "slot": idx}
+            if not configs:
+                ops.append(("set_microgreen_config", {"boxId": raw["id"], "planted_microgreens": [new]}))
+            else:
+                cfg = configs[0]
+                if any(m.get("slot") == idx for m in cfg.get("planted_microgreens") or []):
+                    ops.append(("delete_microgreen", {"microgreenConfigId": cfg["id"], "slot": idx}))
+                ops.append(("add_microgreen", {"microgreenConfigId": cfg["id"], "microgreenId": new["microgreen_id"], "plantedOnDay": new["plantedOnDay"], "slot": idx}))
+        elif name == "clear_microgreen":
+            local.clear_microgreen(temp, data.get("slot"))
+            if data.get("slot") is None:
+                ops += [("delete_module", {"id": c["id"]}) for c in configs]
+            else:
+                idx = int(data["slot"]) - 1
+                ops += [("delete_microgreen", {"microgreenConfigId": c["id"], "slot": idx}) for c in configs
+                        if any(m.get("slot") == idx for m in c.get("planted_microgreens") or [])]
+        else:
+            raise GardenError("Diesen Dienst gibt es im Cloud-Modus nicht")
+        try:
+            for op, variables in ops:
+                await self.cloud.mutate(op, variables)
+            fresh = await self.cloud.fetch()  # danach der Stand, wie ihn die Cloud jetzt hat
+        except (AuthError, ApiKeyError) as err:
+            raise GardenError(f"Anmeldung abgelehnt: {err}") from err
+        except ApiError as err:
+            raise GardenError(f"Die Cloud hat die Änderung nicht angenommen: {err}") from err
+        self.raw_cloud = {b["box_id"]: b for b in fresh.get("box", [])}
+        self.refresh()
 
     def keys_for(self, entry: ConfigEntry) -> list[str]:
         """Welche Gärten legt dieser Eintrag an? Bluetooth-Box: ihren eigenen. Cloud-Konto: nur Boxen, die keine Bluetooth-Box haben."""
@@ -259,6 +353,11 @@ class Garden:
                 await self.async_update_catalog()
                 return
             key = self.resolve(data.get("box"))
+            if self.synced(key):
+                if name == "import_from_cloud":
+                    raise GardenError("Diese Box ist mit der Cloud synchronisiert: ihr Stand ist schon der der Cloud")
+                await self._cloud_write(name, key, data)
+                return
             if name == "import_from_cloud":
                 if key not in self.raw_cloud:
                     raise GardenError("Diese Box gibt es nicht in der Cloud (oder es ist kein Cloud-Konto verbunden)")

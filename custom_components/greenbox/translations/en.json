@@ -7,7 +7,7 @@
         "description": "What would you like to add? The cloud account is optional: without it everything runs locally.",
         "menu_options": {
           "ble": "Bluetooth box",
-          "cloud": "App cloud account (optional, read-only)"
+          "cloud": "App cloud account (optional)"
         }
       },
       "ble": {
@@ -22,7 +22,7 @@
       },
       "cloud": {
         "title": "Cloud account",
-        "description": "Sign in with your Berlin Green app account. Only the sign-in token is stored, not the password; Google/Apple sign-in is not supported. The cloud is read-only. `tools/extract_key.py` reads the app's API key from the app file (APK/XAPK), see the instructions in the repository.",
+        "description": "Sign in with your Berlin Green app account. Only the sign-in token is stored, not the password; Google/Apple sign-in is not supported. The cloud is only read, unless you switch a box to cloud mode (switch \"Sync with cloud\"). `tools/extract_key.py` reads the app's API key from the app file (APK/XAPK), see the instructions in the repository.",
         "data": {
           "email": "Email",
           "password": "Password",
@@ -158,6 +158,9 @@
     "switch": {
       "blink_on_low_water": {
         "name": "Blink on low water"
+      },
+      "cloud_sync": {
+        "name": "Sync with cloud"
       }
     },
     "time": {

@@ -100,6 +100,12 @@ const optByText = (t, sel, text) => t.$$(`${sel} option`).find((o) => o.textCont
   ok(t.calls[0].data.plant === "Nachtkerze" && t.calls[0].data.germination_days === 4 && t.calls[0].data.growth_days === 9 && t.calls[0].data.harvest_days === 6 && !("mix" in t.calls[0].data), "plant_slot mit eigenem Zeitplan: " + JSON.stringify(t.calls[0].data));
   t = make({ ...stPkg, attributes: { ...stPkg.attributes, source: "cloud" } }); await open(t, "plant", 4);
   ok(!t.$("#mix") && t.$(".hint").textContent.includes("nur lokal"), "Cloud-Stand: keine Paketwahl je Slot, Hinweis");
+  const synced = { ...stPkg, attributes: { ...stPkg.attributes, source: "cloud", sync: true } };
+  t = make(synced); await open(t, "plant", 0);
+  ok(t.$(".note").textContent.includes("synchronisiert") && !t.$("#mix") && t.$(".hint").textContent.includes("Cloud-Modus") && !t.$('button[data-action="clear"]') && t.$('button[data-action="removepkg"]'),
+    "Cloud-Modus: Hinweis, keine Paketwahl je Slot, kein 'Slot leeren'");
+  t = make({ ...stEmpty, attributes: { ...stEmpty.attributes, source: "cloud", sync: true } }); await open(t, "plant", 0);
+  ok(!t.$$("#mix option").some((o) => o.textContent.includes("Eigener Zeitplan")) && t.$$("#mix option").length > 2, "Cloud-Modus: neues Paket nur mit Katalog-Mix (kein eigener Zeitplan)");
   t = make({ state: "1", attributes: { ...stPkg.attributes, slots: stPkg.attributes.slots.map((x, i) => i === 0 ? { ...x, package: "Testsalat" } : x) } });
   ok(t.$(".pot").getAttribute("title").includes("Testsalat"), "Slot mit anderem Paket nennt es im Tooltip");
   t = make(stPkg); await open(t, "plant", 0);

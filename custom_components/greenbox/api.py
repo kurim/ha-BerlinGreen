@@ -1,4 +1,4 @@
-"""Cloud-Zugriff (nur lesen): Firebase-Anmeldung wie die App, GraphQL-Abfrage wie die App."""
+"""Cloud-Zugriff: Firebase-Anmeldung wie die App, GraphQL-Abfragen wie die App; Schreiben nur im optionalen Cloud-Modus."""
 from __future__ import annotations
 
 import base64
@@ -42,6 +42,45 @@ query GreenboxOverview {
   }
 }
 """
+
+
+# Änderungen, die im Cloud-Modus geschickt werden. Es sind dieselben Operationen, die auch die App für das Bepflanzen benutzt
+# (PlantNew, InsertSlot, UpdateSlot, SetMicrogreenConfig, AddPlantedMicrogreen, DeletePlantedMicrogreen, DeleteMicrogreenModule);
+# das Entfernen eines Pakets setzt nur removed_at (die App löscht dabei zusätzlich die Microgreens-Module).
+MUTATIONS = {
+    "plant_new": """
+mutation PlantNew($boxId: uuid!, $mixId: Int!, $plantedAt: timestamptz!, $layout: String!, $planted: [planted_insert_input!]!) {
+  insert_package(objects: {box_id: $boxId, mix_id: $mixId, planted_at: $plantedAt, layout: $layout, planted: {data: $planted}}) { affected_rows }
+}""",
+    "remove_packages": """
+mutation RemovePackages($ids: [Int!]!, $removedAt: timestamptz!) {
+  update_package(where: {id: {_in: $ids}}, _set: {removed_at: $removedAt}) { affected_rows }
+}""",
+    "insert_slot": """
+mutation InsertSlot($packageId: Int!, $slot: Int!, $plantId: Int!) {
+  insert_planted(objects: {package_id: $packageId, plant_id: $plantId, slot: $slot}) { affected_rows }
+}""",
+    "update_slot": """
+mutation UpdateSlot($packageId: Int!, $slot: Int!, $plantId: Int!) {
+  update_planted(where: {package_id: {_eq: $packageId}, slot: {_eq: $slot}}, _set: {plant_id: $plantId}) { affected_rows }
+}""",
+    "set_microgreen_config": """
+mutation SetMicrogreenConfig($boxId: uuid!, $planted_microgreens: [planted_microgreen_insert_input!]!) {
+  insert_microgreen_config(objects: {box_id: $boxId, planted_microgreens: {data: $planted_microgreens}}) { affected_rows }
+}""",
+    "add_microgreen": """
+mutation AddPlantedMicrogreen($microgreenConfigId: uuid!, $microgreenId: Int!, $plantedOnDay: date!, $slot: Int!) {
+  insert_planted_microgreen(objects: {microgreen_config_id: $microgreenConfigId, microgreen_id: $microgreenId, plantedOnDay: $plantedOnDay, slot: $slot}) { affected_rows }
+}""",
+    "delete_microgreen": """
+mutation DeletePlantedMicrogreen($microgreenConfigId: uuid!, $slot: Int!) {
+  delete_planted_microgreen(where: {_and: [{slot: {_eq: $slot}}, {microgreen_config_id: {_eq: $microgreenConfigId}}]}) { affected_rows }
+}""",
+    "delete_module": """
+mutation DeleteMicrogreenModule($id: uuid!) {
+  delete_microgreen_config_by_pk(id: $id) { id }
+}""",
+}
 
 
 class AuthError(Exception):
@@ -106,8 +145,11 @@ class GreenboxCloud:
             raise ApiError("Token enthält noch keinen Hasura-Claim")  # kurz nach Kontoerstellung möglich
         return token
 
-    async def _graphql(self, token: str, query: str) -> dict[str, Any]:
-        res = await _post(self._session, GRAPHQL, json_body={"query": query}, headers={"Authorization": f"Bearer {token}"})
+    async def _graphql(self, token: str, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+        body: dict[str, Any] = {"query": query}
+        if variables:
+            body["variables"] = variables
+        res = await _post(self._session, GRAPHQL, json_body=body, headers={"Authorization": f"Bearer {token}"})
         if res.get("errors"):
             raise ApiError("GraphQL-Fehler: " + json.dumps(res["errors"], ensure_ascii=False)[:300])
         return res["data"]
@@ -115,6 +157,10 @@ class GreenboxCloud:
     async def fetch(self) -> dict[str, Any]:
         """Boxen, Pakete und Microgreens des Kontos."""
         return await self._graphql(await self._id_token(), QUERY)
+
+    async def mutate(self, name: str, variables: dict[str, Any]) -> dict[str, Any]:
+        """Eine der Änderungen aus MUTATIONS (Cloud-Modus). Liefert die Antwort des Servers."""
+        return await self._graphql(await self._id_token(), MUTATIONS[name], variables)
 
     async def fetch_catalog(self) -> dict[str, Any]:
         """Pflanzenbibliothek (Rohdaten). Jeder Teil einzeln; nur Mixe und Pflanzen sind zwingend."""

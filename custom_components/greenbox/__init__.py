@@ -1,4 +1,4 @@
-"""Berlin Green GreenBox: Bluetooth-Steuerung je Box und ein gemeinsamer Garten (lokal, Cloud optional nur lesend)."""
+"""Berlin Green GreenBox: Bluetooth-Steuerung je Box und ein gemeinsamer Garten (lokal; Cloud optional: lesen, und je Box im Cloud-Modus auch schreiben)."""
 from __future__ import annotations
 
 import asyncio
@@ -23,7 +23,7 @@ from .photos import PHOTO_URL
 
 _LOGGER = logging.getLogger(__name__)
 BOX_PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TIME]
-CLOUD_PLATFORMS = [Platform.BUTTON, Platform.SENSOR]
+CLOUD_PLATFORMS = [Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
 GARDEN = "_garden"
 LOCK = "_lock"
 FRONTEND = "_frontend"

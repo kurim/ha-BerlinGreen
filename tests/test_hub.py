@@ -101,13 +101,18 @@ class FakeCloud:
     instances = []
     def __init__(self, session, token, key):
         self.refresh_token, self.api_key, self.mode, self.catalog_calls = token, key, "ok", 0
+        self.boxes, self.ops, self.mutate_error = None, [], None
         FakeCloud.instances.append(self)
     async def fetch(self):
         if self.mode == "auth": raise api.AuthError("TOKEN_EXPIRED")
         if self.mode == "key": raise api.ApiKeyError("API key not valid")
         if self.mode == "net": raise api.ApiError("offline")
         self.refresh_token = "ROTATED"
-        return {"box": [box(MAC1, "Cloud name"), box(CLOUD_ONLY, "Andere Box")]}
+        return {"box": self.boxes or [box(MAC1, "Cloud name"), box(CLOUD_ONLY, "Andere Box")]}
+    async def mutate(self, name, variables):
+        if self.mutate_error: raise self.mutate_error
+        self.ops.append((name, variables))
+        return {}
     async def fetch_catalog(self):
         self.catalog_calls += 1
         if self.mode == "auth": raise api.AuthError("TOKEN_EXPIRED")
@@ -177,7 +182,7 @@ async def main():
     ce = Entry({"cloud": True, "email": "a@b.de", "api_key": FAKE_KEY, "refresh_token": "T1"}, "Berlin Green Cloud")
     h.config_entries.entries.append(ce)
     await gb.async_setup_entry(h, ce)
-    check(h.config_entries.forwarded[-1] == (ce.entry_id, ["button", "sensor"]) and set(g.coordinator.data) == {MAC1, MAC2, CLOUD_ONLY}, "Cloud-Eintrag: Katalog-Button und Sensoren; Boxen des Kontos kommen dazu")
+    check(h.config_entries.forwarded[-1] == (ce.entry_id, ["button", "sensor", "switch"]) and set(g.coordinator.data) == {MAC1, MAC2, CLOUD_ONLY}, "Cloud-Eintrag: Katalog-Button und Sensoren; Boxen des Kontos kommen dazu")
     check(g.keys_for(ce) == [CLOUD_ONLY] and g.keys_for(e1) == [MAC1], "der Cloud-Eintrag legt Gärten nur für Boxen ohne Bluetooth an")
     cloud = g.cloud
     check(cloud.api_key == FAKE_KEY, "der eingetragene API-Schlüssel wird an die Cloud-Verbindung übergeben")
@@ -242,6 +247,77 @@ async def main():
     fresh = hub.Garden(h)
     fresh._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
     check(h.events == [], "beim Start wird nur der Stand gemerkt")
+
+    print("Cloud-Modus")
+    local_before = json.dumps(g.local["boxes"][MAC1], sort_keys=True)
+    cloud.ops.clear()
+    check(await expect(g.async_set_sync(MAC2, True), "Cloud-Konto"), "Cloud-Modus lässt sich nur für Boxen einschalten, die die Cloud kennt")
+    await g.async_set_sync(MAC1, True)
+    v = g.coordinator.data[MAC1]
+    check(g.synced(MAC1) and v["source"] == "cloud" and v["sync"] is True and Store.data["greenbox_garden_local"]["cloud_sync"] == [MAC1], "Cloud-Modus an: Stand kommt aus der Cloud, wird gespeichert")
+    await call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Cilantro"}})
+    check(cloud.ops == [("plant_new", {"boxId": "u" + MAC1, "mixId": 1, "plantedAt": cloud.ops[0][1]["plantedAt"], "layout": "EightSlot",
+                                         "planted": [{"slot": 0, "plant_id": 102}]})], "plant_package: neues Paket in die Cloud (ohne altes Paket kein Abschließen)")
+    check(json.dumps(g.local["boxes"][MAC1], sort_keys=True) == local_before, "der lokale Stand bleibt unangetastet")
+    b = box(MAC1, "Cloud name")
+    b["packages"] = [{"id": 7, "planted_at": "2026-09-20T08:00:00+00:00", "layout": "MixedMicrogreens",
+                      "mix": {"id": 1, "name": {"de": "Testkräuter", "en": "Test Herbs"}, "growth_speed": [15, 20, 15]},
+                      "planted": [{"slot": 0, "plant": {"id": 102, "name": {"de": "Koriander", "en": "Cilantro"}, "photo": None}}]}]
+    b["microgreen_configs"] = [{"id": "cfg1", "planted_microgreens": [{"id": "pm1", "slot": 0, "plantedOnDay": "2026-09-20", "microgreen": {
+        "id": 1, "growthTimeDays": 8, "sproutTimeDays": 2, "name": {"de": "Rucola", "en": "Arugula"}, "encyclopedia": [{"image": None}]}}]}]
+    cloud.boxes = [b, box(CLOUD_ONLY, "Andere Box")]
+    await g.coordinator.async_refresh()
+    cloud.ops.clear()
+    await call("plant_slot", {"box": MAC1, "slot": 2, "plant": "Thyme"})
+    await call("plant_slot", {"box": MAC1, "slot": 1, "plant": "Basil"})
+    check(cloud.ops == [("insert_slot", {"packageId": 7, "slot": 1, "plantId": 103}), ("update_slot", {"packageId": 7, "slot": 0, "plantId": 101})],
+          "plant_slot: freier Slot einfügen, belegter Slot ersetzen (Paket-ID aus der Cloud)")
+    cloud.ops.clear()
+    check(await expect(call("plant_slot", {"box": MAC1, "slot": 2, "plant": "Thyme", "mix": "Test Salad"}), "nur im lokalen Modus")
+          and await expect(call("plant_slot", {"box": MAC1, "slot": 2, "plant": "Lettuce"}), "gehört nicht zu diesem Mix")
+          and await expect(call("plant_slot", {"box": MAC1, "slot": 2, "plant": "Freier Name"}), "nicht gefunden")
+          and await expect(call("plant_slot", {"box": MAC1, "slot": 3, "plant": "Thyme"}), "reserviert")
+          and await expect(call("clear_slot", {"box": MAC1, "slot": 1}), "nur ersetzen")
+          and await expect(call("plant_package", {"box": MAC1, "germination_days": 5, "growth_days": 5, "harvest_days": 5}), "Mix angeben")
+          and cloud.ops == [], "nicht Abbildbares wird abgelehnt (eigenes Paket je Slot, freie Namen, reservierter Slot, Slot leeren, eigener Zeitplan), nichts geschickt")
+    await call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Thyme"}})
+    check([o for o, _ in cloud.ops] == ["plant_new", "remove_packages"] and cloud.ops[0][1]["layout"] == "MixedMicrogreens" and cloud.ops[1][1]["ids"] == [7],
+          "plant_package: erst neues Paket, dann das alte abschließen; Layout des alten bleibt")
+    cloud.ops.clear()
+    await call("remove_package", {"box": MAC1})
+    check([o for o, _ in cloud.ops] == ["remove_packages"] and cloud.ops[0][1]["ids"] == [7], "remove_package: nur das Paket, die Microgreens bleiben")
+    cloud.ops.clear()
+    await call("plant_microgreen", {"box": MAC1, "slot": 1, "microgreen": "Mustard", "planted_on": "2026-09-25"})
+    await call("plant_microgreen", {"box": MAC1, "slot": 2, "microgreen": "Mustard", "planted_on": "2026-09-25"})
+    check([o for o, _ in cloud.ops] == ["delete_microgreen", "add_microgreen", "add_microgreen"] and cloud.ops[1][1] == {"microgreenConfigId": "cfg1", "microgreenId": 3, "plantedOnDay": "2026-09-25", "slot": 0},
+          "plant_microgreen: belegtes Feld erst leeren, dann setzen")
+    cloud.ops.clear()
+    check(await expect(call("plant_microgreen", {"box": MAC1, "slot": 3, "microgreen": "Wunschkraut", "sprout_days": 1, "growth_days": 3}), "kein Katalog-Microgreen"), "freies Microgreen wird abgelehnt")
+    await call("clear_microgreen", {"box": MAC1, "slot": 1})
+    check(cloud.ops == [("delete_microgreen", {"microgreenConfigId": "cfg1", "slot": 0})], "clear_microgreen: ein Feld")
+    cloud.ops.clear()
+    await call("clear_microgreen", {"box": MAC1})
+    check(cloud.ops == [("delete_module", {"id": "cfg1"})], "clear_microgreen ohne Feld: Modul löschen")
+    cloud.boxes = [box(MAC1, "Cloud name"), box(CLOUD_ONLY, "Andere Box")]
+    await g.coordinator.async_refresh()
+    cloud.ops.clear()
+    await call("plant_microgreen", {"box": MAC1, "slot": 1, "microgreen": "Mustard", "planted_on": "2026-09-25"})
+    check(cloud.ops == [("set_microgreen_config", {"boxId": "u" + MAC1, "planted_microgreens": [{"microgreen_id": 3, "plantedOnDay": "2026-09-25", "slot": 0}]})], "ohne Modul: Modul mit dem ersten Feld anlegen")
+    check(await expect(call("import_from_cloud", {"box": MAC1}), "synchronisiert"), "Übernehmen ist im Cloud-Modus überflüssig und wird abgelehnt")
+    check(await expect(call("plant_slot", {"box": MAC1, "slot": 1, "plant": "Basil"}), "noch kein Paket"), "ohne Paket in der Cloud: klare Meldung statt Senden")
+    cloud.ops.clear()
+    await call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Basil"}})
+    cloud.mutate_error = api.ApiError("HTTP 400: permission denied")
+    check(await expect(call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Basil"}}), "nicht angenommen"), "Fehler der Cloud werden gemeldet")
+    cloud.mutate_error = api.AuthError("TOKEN_EXPIRED")
+    check(await expect(call("plant_package", {"box": MAC1, "mix": "Test Herbs", "plants": {1: "Basil"}}), "Anmeldung abgelehnt"), "abgelehnte Anmeldung wird gemeldet")
+    cloud.mutate_error = None
+    check(json.dumps(g.local["boxes"][MAC1], sort_keys=True) == local_before, "auch nach Fehlern bleibt der lokale Stand unverändert")
+    await g.async_set_sync(MAC1, False)
+    check(not g.synced(MAC1) and g.coordinator.data[MAC1]["source"] == "local" and g.coordinator.data[MAC1]["sync"] is False and Store.data["greenbox_garden_local"]["cloud_sync"] == [],
+          "Cloud-Modus aus: wieder der lokale Stand")
+    cloud.boxes = None
+    await g.coordinator.async_refresh()
 
     print("Cloud-Fehler")
     catalog_before = json.dumps(Store.data["greenbox_catalog"], sort_keys=True)

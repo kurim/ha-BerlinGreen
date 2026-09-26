@@ -67,7 +67,7 @@ class GreenBoxConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In({a: f"{n} ({a})" for a, n in found.items()})}),
         )
 
-    # --- Cloud-Konto (optional, nur lesend) -------------------------------------------------------
+    # --- Cloud-Konto (optional; geschrieben wird nur bei Boxen im Cloud-Modus) -------------------------------------------------------
     async def _login(self, email: str, password: str, api_key: str) -> tuple[dict[str, str] | None, dict[str, str]]:
         if not valid_key_format(api_key):
             return None, {CONF_API_KEY: "invalid_api_key"}

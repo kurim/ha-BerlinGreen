@@ -20,14 +20,14 @@ const PHASE = {
 const ICON = { empty: "mdi:plus", germination: "mdi:seed-outline", growth: "mdi:sprout", harvest: "mdi:basket-outline", complete: "mdi:check-circle-outline" };
 
 const T = {
-  de: { newPackage: "Neues Paket pflanzen", plant: "Pflanze", mix: "Mix", pkg: "Paket für diesen Slot", currentPkg: "Paket der Box", cloudPkgNote: "Ein eigenes Paket je Slot gibt es nur lokal – zuerst den Stand übernehmen (Button „Garten aus der Cloud übernehmen“).", custom: "Eigener Zeitplan", date: "Pflanzdatum",
+  de: { newPackage: "Neues Paket pflanzen", plant: "Pflanze", mix: "Mix", pkg: "Paket für diesen Slot", currentPkg: "Paket der Box", syncNote: "Mit der Cloud synchronisiert – Änderungen gehen an die App.", syncPkgNote: "Cloud-Modus: wie in der App ein Paket je Box und nur Katalog-Pflanzen. Ein Slot lässt sich ersetzen, nicht leeren.", cloudPkgNote: "Ein eigenes Paket je Slot gibt es nur lokal – zuerst den Stand übernehmen (Button „Garten aus der Cloud übernehmen“).", custom: "Eigener Zeitplan", date: "Pflanzdatum",
         germ: "Keimung (Tage)", growth: "Wachstum (Tage)", harvest: "Ernte (Tage)", save: "Pflanzen", cancel: "Abbrechen",
         change: "Ändern", clear: "Slot leeren", removePkg: "Paket entfernen", confirmPkg: "Das ganze Paket wirklich entfernen?",
         slot: "Slot", micro: "Microgreens", module: "Modul", microOne: "Microgreen", loading: "Lade Katalog ...", err: "Fehler", choose: "– bitte wählen –",
         cloudNote: "Stand aus der Cloud – eine Änderung übernimmt ihn lokal.", plantName: "Pflanzenname", orName: "oder eigener Name", mgName: "Name", sproutDays: "Keimzeit (Tage)", growthMg: "Tage bis zur Ernte",
         noCatalog: "Kein Katalog geladen: Cloud-Konto verbinden (Dienst greenbox.update_catalog) oder Datei greenbox_catalog.json ablegen. Bis dahin geht \"Eigener Zeitplan\" mit frei getipptem Namen.", planted: "belegt", ready: "erntereif",
         readyShort: "erntereif", finished: "Zyklus beendet", harvestIn: (n) => `Ernte in ${n} T`, notFound: "nicht gefunden" },
-  en: { newPackage: "Plant new package", plant: "Plant", mix: "Mix", pkg: "Package for this slot", currentPkg: "Box package", cloudPkgNote: "A separate package per slot is only possible locally – take over the state first (button “Import garden from cloud”).", custom: "Custom schedule", date: "Planting date",
+  en: { newPackage: "Plant new package", plant: "Plant", mix: "Mix", pkg: "Package for this slot", currentPkg: "Box package", syncNote: "Synced with the cloud – changes go to the app.", syncPkgNote: "Cloud mode: like the app, one package per box and catalog plants only. A slot can be replaced, not emptied.", cloudPkgNote: "A separate package per slot is only possible locally – take over the state first (button “Import garden from cloud”).", custom: "Custom schedule", date: "Planting date",
         germ: "Germination (days)", growth: "Growth (days)", harvest: "Harvest (days)", save: "Plant", cancel: "Cancel",
         change: "Change", clear: "Empty slot", removePkg: "Remove package", confirmPkg: "Really remove the whole package?",
         slot: "Slot", micro: "Microgreens", module: "Modul", microOne: "Microgreen", loading: "Loading catalog ...", err: "Error", choose: "– please choose –",
@@ -134,7 +134,7 @@ class GreenboxGardenCard extends HTMLElement {
     }
     const a = st.attributes;
     const t = this._t;
-    const note = a.source === "cloud" && this._config.editable ? `<div class="note">${t.cloudNote}</div>` : "";
+    const note = this._config.editable && a.sync ? `<div class="note">${t.syncNote}</div>` : a.source === "cloud" && this._config.editable ? `<div class="note">${t.cloudNote}</div>` : "";
     const ready = (a.harvest_ready || 0) + (a.microgreens_ready || 0);
     const count = (Number(st.state) || 0) + (a.microgreens_planted || 0);
     const head = `<div class="head"><span class="title">${this._esc(a.name || a.friendly_name || "")}</span>
@@ -204,13 +204,13 @@ class GreenboxGardenCard extends HTMLElement {
       body += `<div class="btns">${this._btn("save", filled ? t.change : t.save)}${filled ? this._btn("clear", t.clear) : ""}${this._btn("cancel", t.cancel)}</div>`;
     } else if (!a.has_package) {
       const first = cat.mixes.find((m) => !m.own) || cat.mixes[0];
-      body += `<h4>${t.newPackage}</h4>${cat.empty ? `<p class="hint">${t.noCatalog}</p>` : ""}` + this._field(t.mix, this._select("mix", [...cat.mixes.map((m) => ({ ...m, name: `${m.name} (${m.schedule.join("/")})` })), { id: "custom", name: t.custom }], first ? first.id : "custom"));
+      body += `<h4>${t.newPackage}</h4>${cat.empty ? `<p class="hint">${t.noCatalog}</p>` : ""}` + this._field(t.mix, this._select("mix", [...cat.mixes.map((m) => ({ ...m, name: `${m.name} (${m.schedule.join("/")})` })), ...(a.sync ? [] : [{ id: "custom", name: t.custom }])], first ? first.id : "custom"));
       body += `<div id="custom" hidden>${this._field(t.germ, `<input id="d0" type="number" min="0" value="20">`)}${this._field(t.growth, `<input id="d1" type="number" min="0" value="20">`)}${this._field(t.harvest, `<input id="d2" type="number" min="0" value="20">`)}</div>`;
       body += `<div id="plantpick"></div>` + this._field(t.date, `<input id="date" type="date" value="${today}">`);
       body += `<div class="btns">${this._btn("save", t.save)}${this._btn("cancel", t.cancel)}</div>`;
     } else {
-      if (a.source === "cloud") {
-        body += `<p class="hint">${t.cloudPkgNote}</p>`;   // Cloud-Stand: nur das Paket der Box, kein eigenes Paket je Slot
+      if (a.sync || a.source === "cloud") {
+        body += `<p class="hint">${a.sync ? t.syncPkgNote : t.cloudPkgNote}</p>`;   // Cloud-Stand: nur das Paket der Box, kein eigenes Paket je Slot
       } else {
         // andere Pflanzen haben andere Keimzeiten: ein Slot kann ein eigenes Paket (anderer Mix oder eigener Zeitplan) bekommen
         const items = [...cat.mixes.map((m) => ({ ...m, name: `${m.name} (${m.schedule.join("/")})` })), { id: "custom", name: t.custom }];
@@ -219,7 +219,7 @@ class GreenboxGardenCard extends HTMLElement {
         body += `<div id="pkgdate" hidden>${this._field(t.date, `<input id="date" type="date" value="${today}">`)}</div>`;
       }
       body += `<div id="plantpick"></div>`;
-      body += `<div class="btns">${this._btn("save", filled ? t.change : t.save)}${filled ? this._btn("clear", t.clear) : ""}${this._btn("removepkg", t.removePkg)}${this._btn("cancel", t.cancel)}</div>`;
+      body += `<div class="btns">${this._btn("save", filled ? t.change : t.save)}${filled && !a.sync ? this._btn("clear", t.clear) : ""}${this._btn("removepkg", t.removePkg)}${this._btn("cancel", t.cancel)}</div>`;
     }
     body += `<p class="error" id="err" hidden></p>`;
     dlg.innerHTML = this._modal(body);

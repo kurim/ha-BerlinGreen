@@ -26,8 +26,9 @@ Dazu gibt es eine Lovelace-Karte, die aussieht wie die App. English version: [RE
 - Ein Sensor je Box und ein Phasen-Sensor je Slot, z. B. für Automationen wie „Ernte ist bereit“
 - Lovelace-Karte mit visuellem Editor; Slot antippen zum Bepflanzen, Ändern oder Leeren. Die Integration liefert die Karte selbst aus, es muss keine Ressource eingetragen werden
 
-**Cloud-Konto (optional, nur lesend)**
+**Cloud-Konto (optional)**
 - Zeigt, was die App zeigt, lädt die Pflanzenbibliothek für dich (`greenbox.update_catalog`) und listet Boxen ohne Bluetooth-Verbindung
+- **Cloud-Modus (je Box, standardmäßig aus):** Der Schalter **Mit Cloud synchronisieren** macht die Bepflanzung der Box mit der App identisch. Änderungen in Home Assistant gehen an die Cloud und erscheinen in der App, die Box zeigt den Stand der Cloud (alle 15 Minuten und nach jeder Änderung neu geladen)
 - Gespeichert wird nur das Anmelde-Token, nie dein Passwort. Anmeldung über Google/Apple wird nicht unterstützt
 
 ## Voraussetzungen
@@ -90,6 +91,17 @@ Erscheint die Karte nach einem Update nicht, den Browser-Cache leeren (Strg+F5).
 Beide Blueprints fragen nach deinem Handy (Home-Assistant-App); Titel und Text kannst du anpassen. Jede andere Automation geht auch, z. B. mit dem Ereignis als
 Auslöser und `notify.mobile_app_<handy>`.
 
+## Cloud-Modus
+Der Schalter **Mit Cloud synchronisieren** (am Gerät der Box, bei Boxen ohne Bluetooth am Cloud-Gerät) lässt eine Box der App folgen: Die Pflanz-Dienste (`plant_package`,
+`plant_slot`, `remove_package`, `plant_microgreen`, `clear_microgreen`) gehen an dein Berlin-Green-Konto, danach wird der Stand von dort neu geladen. Deine lokale Bepflanzung dieser Box
+bleibt unberührt und kommt zurück, wenn du den Modus ausschaltest.
+
+Was die App nicht abbilden kann, wird in diesem Modus abgelehnt: ein Paket je Box (kein Paket je Slot), nur Katalog-Pflanzen und -Mixe (kein eigener Zeitplan, keine getippten Namen), Slots lassen
+sich ersetzen, aber nicht leeren (stattdessen das Paket entfernen). „Paket entfernen“ schließt nur das Paket ab, Microgreens bleiben.
+
+Die Schreib-Operationen sind die, die auch die App benutzt, aber aus deren Code abgeleitet und **nicht bei jedem Konto geprüft**. Lehnt die Cloud eine Änderung ab, bekommst du die
+Fehlermeldung, lokal geht nichts verloren. Fang mit einer Box an und prüfe die App.
+
 ## Dienste
 Slots zählen ab 1. `box` ist bei nur einer Box optional (sonst Name oder Adresse).
 
@@ -112,7 +124,7 @@ Regeln wie in der App: Ein Mix hat einen gemeinsamen Zeitplan und erlaubt nur se
 
 ## Datenschutz und Sicherheit
 - Bluetooth-Steuerung und Garten laufen komplett lokal. Lokale Daten liegen in `.storage/greenbox_garden_local` und `.storage/greenbox_catalog`.
-- Mit Cloud-Konto spricht die Integration mit Google (Firebase-Anmeldung) und `backend.berlingreen.tech` (dem GraphQL-Server der App), nur lesend, alle 15 Minuten.
+- Mit Cloud-Konto spricht die Integration mit Google (Firebase-Anmeldung) und `backend.berlingreen.tech` (dem GraphQL-Server der App) alle 15 Minuten. Sie liest nur, außer du schaltest eine Box in den Cloud-Modus; dann werden deine Pflanz-Änderungen mit denselben Operationen wie in der App in dein eigenes Konto geschrieben.
 - Der Firebase-Schlüssel der App gehört nicht zu diesem Repository; du trägst ihn selbst ein (siehe oben). Er liegt im Konfigurationseintrag von Home Assistant.
 - Bitte poste nie Passwörter, Tokens oder Exporte deines Kontos in Issues.
 

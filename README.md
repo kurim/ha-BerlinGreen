@@ -26,8 +26,9 @@ growing in it, including a Lovelace card that looks like the app. Deutsche Versi
 - One sensor per box and one phase sensor per slot, for automations such as "harvest is ready"
 - A Lovelace card with a visual editor; tap a slot to plant, change or empty it. The integration serves the card itself, no resource to add
 
-**Cloud account (optional, read-only)**
+**Cloud account (optional)**
 - Shows what the app shows, loads the plant library for you (`greenbox.update_catalog`), lists boxes that are not connected via Bluetooth
+- **Cloud mode (per box, off by default):** the switch **Sync with cloud** makes the box's planting identical to the app. Planting changes made in Home Assistant are sent to the cloud and show up in the app, and the box shows the cloud state (refreshed every 15 minutes and after each change)
 - Only the sign-in token is stored, never your password. Google/Apple sign-in is not supported
 
 ## Requirements
@@ -88,6 +89,17 @@ If the card does not show up after an update, clear the browser cache (Ctrl+F5).
 Both blueprints ask for your phone (Home Assistant app) and let you edit title and text. Any other automation works too, e.g. trigger on the event and call
 `notify.mobile_app_<phone>`.
 
+## Cloud mode
+Switch **Sync with cloud** (on the box's device, or on the cloud-only box) makes a box follow the app: planting services (`plant_package`, `plant_slot`, `remove_package`,
+`plant_microgreen`, `clear_microgreen`) are sent to your Berlin Green account, then the state is reloaded from there. Your local planting of that box stays untouched and
+returns when you switch the mode off.
+
+What the app cannot represent is refused in this mode: one package per box (no per-slot package), catalog plants and mixes only (no custom schedule or typed names), slots
+can be replaced but not emptied (remove the package instead). Removing a package only closes it; microgreens stay.
+
+The write operations are the ones the app itself uses, but they were derived from the app's code and are **not verified against every account**. If the cloud refuses a change
+you get the error message and nothing local is lost. Start with one box and check the app.
+
 ## Services
 Slots count from 1. `box` is optional when you have a single box (name or address otherwise).
 
@@ -110,7 +122,7 @@ Rules like in the app: a mix has one shared schedule and only allows its own pla
 
 ## Privacy and security
 - Bluetooth control and the garden work fully locally. Local data lives in `.storage/greenbox_garden_local` and `.storage/greenbox_catalog`.
-- With the cloud account the integration talks to Google (Firebase sign-in) and `backend.berlingreen.tech` (the app's GraphQL server), read-only, every 15 minutes.
+- With the cloud account the integration talks to Google (Firebase sign-in) and `backend.berlingreen.tech` (the app's GraphQL server) every 15 minutes. It only reads, unless you switch a box to cloud mode; then your planting changes are written to your own account with the same operations the app uses.
 - The app's Firebase API key is not part of this repository; you enter it yourself (see above). It is stored in Home Assistant's config entry.
 - Please never post passwords, tokens or exports of your account in issues.
 
