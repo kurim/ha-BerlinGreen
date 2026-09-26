@@ -52,6 +52,26 @@ SERVICES: dict[str, vol.Schema] = {
 }
 
 
+async def _add_lovelace_resource(hass: HomeAssistant, url: str) -> bool:
+    """Trägt die Karte bei den Dashboard-Ressourcen ein (wie HACS es für Karten tut; nur im Speichermodus möglich).
+
+    Ohne Aufruf von Hand steht sie dann unter Einstellungen -> Dashboards -> Ressourcen. Bei neuer Version wird die Adresse aktualisiert."""
+    data = hass.data.get("lovelace")
+    resources = data.get("resources") if isinstance(data, dict) else getattr(data, "resources", None)
+    if resources is None or not hasattr(resources, "async_create_item"):
+        return False  # YAML-Modus oder Lovelace nicht geladen
+    if not getattr(resources, "loaded", True):
+        await resources.async_load()
+    base = url.split("?")[0]
+    for item in resources.async_items():
+        if item.get("url", "").split("?")[0] == base:
+            if item["url"] != url:
+                await resources.async_update_item(item["id"], {"res_type": "module", "url": url})
+            return True
+    await resources.async_create_item({"res_type": "module", "url": url})
+    return True
+
+
 async def _register_card(hass: HomeAssistant, root: dict, garden: Garden) -> None:
     """Die Karte gehört zur Integration und wird automatisch geladen (keine Ressource von Hand eintragen)."""
     if root.get(FRONTEND):
@@ -64,7 +84,14 @@ async def _register_card(hass: HomeAssistant, root: dict, garden: Garden) -> Non
             StaticPathConfig(CARD_URL, str(Path(__file__).parent / "frontend"), cache_headers=False),
             StaticPathConfig(PHOTO_URL, str(garden.photo_dir), cache_headers=True),  # Dateinamen sind Hashes der Adresse
         ])
-        add_extra_js_url(hass, f"{CARD_URL}/{CARD_FILE}?v={integration.version}")
+        card = f"{CARD_URL}/{CARD_FILE}?v={integration.version}"
+        try:
+            registered = await _add_lovelace_resource(hass, card)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Dashboard-Ressource konnte nicht angelegt werden")
+            registered = False
+        if not registered:  # z. B. Dashboards im YAML-Modus: die Karte wird stattdessen auf jeder Seite geladen
+            add_extra_js_url(hass, card)
     except Exception:  # noqa: BLE001 - die Steuerung darf nie an der Karte scheitern
         _LOGGER.exception("Karte konnte nicht registriert werden; Ressource /local/... von Hand eintragen")
 

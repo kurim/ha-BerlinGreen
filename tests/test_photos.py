@@ -55,7 +55,9 @@ check(photos.collect_urls(cat) == {u, "https://cdn.example/b.jpg"}, "nur https-A
 
 class Resp:
     def __init__(self, status, body): self.status, self.content = status, self
-    async def read(self, n): return self.body[:n]
+    async def iter_chunked(self, n):
+        for i in range(0, len(self.body), 1000):  # wie im Netz: in kleinen Häppchen, nicht am Stück
+            yield self.body[i:i + 1000]
     async def __aenter__(self): return self
     async def __aexit__(self, *a): return False
 

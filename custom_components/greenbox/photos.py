@@ -12,6 +12,8 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
+import aiohttp
+
 _LOGGER = logging.getLogger(__name__)
 
 PHOTO_DIR = "greenbox_photos"  # im Home-Assistant-Ordner
@@ -70,11 +72,15 @@ def existing(folder: Path) -> set[str]:
 
 
 async def _fetch(session: Any, url: str) -> bytes | None:
-    async with session.get(url, timeout=30) as resp:
+    async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
         if resp.status != 200:
             return None
-        data = await resp.content.read(MAX_DOWNLOAD + 1)
-        return data if len(data) <= MAX_DOWNLOAD else None
+        data = bytearray()
+        async for chunk in resp.content.iter_chunked(65536):  # read() liefert nur, was gerade angekommen ist -> abgeschnittene Bilder
+            data += chunk
+            if len(data) > MAX_DOWNLOAD:
+                return None
+        return bytes(data)
 
 
 async def sync(session: Any, folder: Path, urls: Iterable[str], run_blocking: Callable[..., Any],
@@ -97,7 +103,7 @@ async def sync(session: Any, folder: Path, urls: Iterable[str], run_blocking: Ca
                 done += 1
             except Exception as err:  # noqa: BLE001 - ein defektes Foto darf die anderen nicht aufhalten
                 failed += 1
-                _LOGGER.debug("Foto %s nicht geladen: %s", url, err)
+                _LOGGER.log(logging.WARNING if failed == 1 else logging.DEBUG, "Foto %s nicht geladen: %s", url, err)
 
     await asyncio.gather(*(one(u) for u in todo))
     if done and on_progress:

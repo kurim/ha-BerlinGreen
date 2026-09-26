@@ -81,6 +81,11 @@ class Hass:
     def async_create_background_task(self, coro, name): return asyncio.ensure_future(coro)
 
 
+def types_ns(**kw):
+    import types
+    return types.SimpleNamespace(**kw)
+
+
 class Call:
     def __init__(self, data): self.data = data
 
@@ -222,6 +227,32 @@ async def main():
     ce.data = old
     g.configure()
     check(g.cloud is not None and g.cloud.api_key == FAKE_KEY, "mit eingetragenem Schlüssel ist die Cloud wieder da")
+
+    print("Karte als Dashboard-Ressource")
+
+    class Resources:
+        loaded = False
+        def __init__(self, items=()): self.items, self.n = [dict(i) for i in items], 0
+        async def async_load(self): self.loaded = True
+        def async_items(self): return list(self.items)
+        async def async_create_item(self, data): self.n += 1; self.items.append({"id": f"r{self.n}", **data})
+        async def async_update_item(self, id_, data): next(i for i in self.items if i["id"] == id_).update(data)
+
+    card_url = "/greenbox_static/greenbox-garden-card.js?v=9.9.9"
+    h5 = Hass(); res = Resources(); h5.data["lovelace"] = types_ns(resources=res)
+    root = h5.data.setdefault("greenbox", {})
+    await gb._register_card(h5, root, g)
+    check(res.loaded and res.items == [{"id": "r1", "res_type": "module", "url": card_url}] and h5.js == [], "Speichermodus: Ressource wird angelegt, keine zweite Einbindung")
+    root["_frontend"] = False
+    await gb._register_card(h5, root, g)
+    check(len(res.items) == 1, "erneuter Start legt sie nicht doppelt an")
+    h6 = Hass(); res6 = Resources([{"id": "old", "res_type": "module", "url": "/greenbox_static/greenbox-garden-card.js?v=0.1.0"}])
+    h6.data["lovelace"] = {"resources": res6}
+    await gb._register_card(h6, h6.data.setdefault("greenbox", {}), g)
+    check(res6.items == [{"id": "old", "res_type": "module", "url": card_url}], "neue Version aktualisiert die vorhandene Ressource (auch bei dict-Daten)")
+    h7 = Hass(); h7.data["lovelace"] = types_ns(resources=types_ns(async_items=lambda: []))  # YAML-Modus: nur lesbar
+    await gb._register_card(h7, h7.data.setdefault("greenbox", {}), g)
+    check(h7.js == [card_url], "YAML-Modus: Ersatz über die Seite (extra_js_url)")
 
     print("Entfernen und Neustart")
     h.config_entries.entries.remove(ce)

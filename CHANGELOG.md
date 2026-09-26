@@ -3,6 +3,15 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.7.1] - 2026-09-26
+
+### Fixed
+- **Die Karte wird automatisch eingebunden:** Die Integration trägt `greenbox-garden-card.js` selbst bei den Dashboard-Ressourcen ein
+  (`/greenbox_static/greenbox-garden-card.js?v=<Version>`, wie HACS es für Karten tut) und aktualisiert die Adresse bei neuer Version. Bei Dashboards im
+  YAML-Modus wird sie stattdessen auf jeder Seite geladen. / The card is added to the dashboard resources automatically.
+- **Fotos wurden abgeschnitten geladen** und daher fast alle verworfen (die Antwort wurde nur zum Teil gelesen). Sie werden jetzt vollständig geladen;
+  der erste Fehler steht im Log als Warnung.
+
 ## [0.7.0] - 2026-09-26
 
 ### Added
