@@ -9,7 +9,7 @@ const { window } = dom;
 window.eval(fs.readFileSync(CARD, "utf8"));
 const rd = (f) => JSON.parse(fs.readFileSync(path.join(FIX, f), "utf8"));
 const cat = rd("catalog.json"), catEmpty = rd("catalog_empty.json");
-const stMush = rd("st_mush.json"), stEmpty = rd("st_empty.json"), stPkg = rd("st_pkg.json"), stDouble = rd("st_double.json"), stCustom = rd("st_custom.json");
+const stMush = rd("st_mush.json"), stMushOnly = rd("st_mush_only.json"), stEmpty = rd("st_empty.json"), stPkg = rd("st_pkg.json"), stDouble = rd("st_double.json"), stCustom = rd("st_custom.json");
 const MAC = stEmpty.attributes.box_key;
 let fails = 0;
 const ok = (c, m) => { console.log((c ? "  ok    " : "  FEHLT ") + m); if (!c) fails++; };
@@ -96,6 +96,10 @@ const optByText = (t, sel, text) => t.$$(`${sel} option`).find((o) => o.textCont
   window.confirm = () => false; t.$('button[data-action="clearmush"]').click(); await tick(); ok(t.calls.length === 0, "Pilz entfernen: 'Abbrechen' -> nichts");
   window.confirm = () => true; t.$('button[data-action="clearmush"]').click(); await tick();
   ok(t.calls[0].s === "clear_mushroom" && t.calls[0].data.box === stMush.attributes.box_key, "clear_mushroom nach Bestätigung");
+  t = make(stMushOnly);
+  ok(t.$$(".slot.pot").length === 0 && !t.$('button[data-action="addmicro"]') && t.$('.slot[data-kind="mushroom"]') && t.$(".sub").textContent.includes("1 belegt"),
+    "nur Pilz: Töpfchen und Microgreens-Knopf ausgeblendet, Zähler zählt den Pilz");
+  t = make(stMushOnly, { style: "tiles" }); ok(t.$$('.slot[data-kind="plant"]').length === 0 && t.$('.slot[data-kind="mushroom"]'), "nur Pilz: auch in Kacheln");
   t = make(stMush, { style: "tiles" }); ok(t.$('.slot[data-kind="mushroom"]'), "Pilz auch in der Kachel-Darstellung");
   const early = { ...stMush, attributes: { ...stMush.attributes, mushrooms: stMush.attributes.mushrooms.map((m) => ({ ...m, phase: "germination" })) } };
   ok(make(early).$('.slot[data-kind="mushroom"]').textContent.includes("Fruchtansatz"), "erste Pilz-Phase heißt Fruchtansatz");

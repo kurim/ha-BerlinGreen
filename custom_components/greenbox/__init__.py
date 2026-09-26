@@ -22,7 +22,7 @@ from .hub import CONF_CLOUD, DOMAIN, Garden
 from .photos import PHOTO_URL
 
 _LOGGER = logging.getLogger(__name__)
-BOX_PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TIME]
+BOX_PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TIME]
 CLOUD_PLATFORMS = [Platform.BUTTON, Platform.SENSOR, Platform.SWITCH]
 GARDEN = "_garden"
 LOCK = "_lock"

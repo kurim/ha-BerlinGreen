@@ -51,4 +51,7 @@ write("st_mush", state(raw={"id": "x", "box_id": _stubs.MAC1, "name": "Pilzbox",
                                           "planted": [{"slot": 0, "plant": {"id": 101, "name": {"de": "Basilikum"}, "photo": None}}]}],
                             "mushroom_config": [{"id": "mc1", "planted_mushrooms": [{"id": "p", "plantedOnDay": "2026-09-20", "mushroom": {
                                 "id": 4, "pinningTimeDays": 5, "growthTimeDays": 7, "harvestTimeDays": 5, "name": {"de": "Austernpilz"}}}]}]}))
+write("st_mush_only", state(raw={"id": "x", "box_id": _stubs.MAC1, "name": "Pilzbox", "type": "Standard", "microgreen_configs": [], "packages": [],
+                                 "mushroom_config": [{"id": "mc1", "planted_mushrooms": [{"id": "p", "plantedOnDay": "2026-09-20", "mushroom": {
+                                     "id": 4, "pinningTimeDays": 5, "growthTimeDays": 7, "harvestTimeDays": 5, "name": {"de": "Austernpilz"}}}]}]}))
 print("Vorlagen geschrieben:", sorted(p.name for p in OUT.glob("*.json")))

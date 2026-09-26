@@ -181,6 +181,11 @@
       "import_from_cloud": {
         "name": "Import garden from cloud"
       }
+    },
+    "binary_sensor": {
+      "water_low": {
+        "name": "Water low"
+      }
     }
   },
   "options": {

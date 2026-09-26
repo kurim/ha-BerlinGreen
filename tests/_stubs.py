@@ -76,7 +76,7 @@ def install(catalog_dir: Path | None = None) -> None:
     sys.modules["homeassistant.components"].bluetooth = bt
     mod("homeassistant.config_entries", ConfigEntry=object, ConfigEntryState=State, ConfigFlow=object, ConfigFlowResult=dict, OptionsFlow=object)
     mod("homeassistant.const", CONF_ADDRESS="address", CONF_NAME="name", CONF_EMAIL="email", CONF_PASSWORD="password",
-        Platform=types.SimpleNamespace(BUTTON="button", NUMBER="number", SELECT="select", SENSOR="sensor", SWITCH="switch", TIME="time"))
+        Platform=types.SimpleNamespace(BINARY_SENSOR="binary_sensor", BUTTON="button", NUMBER="number", SELECT="select", SENSOR="sensor", SWITCH="switch", TIME="time"))
     mod("homeassistant.core", HomeAssistant=object, ServiceCall=object, callback=lambda f: f)
     mod("homeassistant.exceptions", ServiceValidationError=ServiceValidationError)
     mod("homeassistant.helpers")

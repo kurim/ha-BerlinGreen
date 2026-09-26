@@ -181,6 +181,11 @@
       "import_from_cloud": {
         "name": "Garten aus der Cloud übernehmen"
       }
+    },
+    "binary_sensor": {
+      "water_low": {
+        "name": "Wasser knapp"
+      }
     }
   },
   "options": {

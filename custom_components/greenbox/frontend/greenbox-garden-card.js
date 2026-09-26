@@ -144,10 +144,17 @@ class GreenboxGardenCard extends HTMLElement {
     const a = st.attributes;
     const t = this._t;
     const note = this._config.editable && a.sync ? `<div class="note">${t.syncNote}</div>` : a.source === "cloud" && this._config.editable ? `<div class="note">${t.cloudNote}</div>` : "";
-    const ready = (a.harvest_ready || 0) + (a.microgreens_ready || 0);
-    const count = (Number(st.state) || 0) + (a.microgreens_planted || 0);
+    const ready = (a.harvest_ready || 0) + (a.microgreens_ready || 0) + (a.mushrooms_ready || 0);
+    const count = (Number(st.state) || 0) + (a.microgreens_planted || 0) + (a.mushrooms_planted || 0);
+    // Ist nur ein Pilz gepflanzt (ohne Pflanzen und Microgreens), zeigt die Karte nur den Pilz - wie die App
+    const mushroomOnly = (a.mushrooms_planted || 0) > 0 && !(Number(st.state) || 0) && !(a.microgreens_planted || 0);
     const head = `<div class="head"><span class="title">${this._esc(a.name || a.friendly_name || "")}</span>
       <span class="sub">${count} ${t.planted}${ready ? ` · ${ready} ${t.ready}` : ""}</span></div>`;
+    if (mushroomOnly) {
+      card.setAttribute("lang", this._de ? "de" : "en");
+      card.innerHTML = `<ha-card>${head}${this._mushrooms(a)}${note}</ha-card>`;
+      return;
+    }
     if (this._config.style === "tiles") {
       const micro = a.microgreens || [];
       const m = this._config.microgreens;

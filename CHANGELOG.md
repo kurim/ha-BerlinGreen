@@ -3,6 +3,18 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.12.0] - 2026-09-26
+
+### Added
+- Binärsensor **Wasser knapp** je Bluetooth-Box (an bei niedrigem oder leerem Wasser, Attribut `status`). Der Blueprint „Wasserstand kritisch“ bietet nur noch diesen
+  Sensor zur Auswahl an (vorher tauchten alle Enum-Sensoren der Integration auf, auch die Slot-Sensoren).
+
+### Fixed
+- Beide Blueprints liefen beim manuellen Ausführen in einen Fehler (`'dict object' has no attribute 'to_state'`), weil sie Auslöser-Daten voraussetzten. Sie benutzen jetzt
+  Variablen mit Rückfall; die Nachricht für Pilze sagt „Pilz“ statt „Slot 1“.
+- Karte: Ist nur ein Pilz gepflanzt (keine Pflanzen, keine Microgreens), zeigt sie nur den Pilz und blendet Töpfchen und Microgreens-Knopf aus. Der Zähler in der
+  Kopfzeile zählt Pilze mit.
+
 ## [0.11.2] - 2026-09-26
 
 ### Fixed

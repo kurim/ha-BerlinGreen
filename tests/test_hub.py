@@ -17,7 +17,7 @@ class FakeDevice:
 
     def __init__(self, hass, address, name):
         self.address, self.name = address, name
-        self.state = type("S", (), {"firmware_name": "1.0"})()
+        self.state = type("S", (), {"firmware_name": "1.0", "water": None})()
 
     async def async_start(self):
         FakeDevice.started.append(self.address)
@@ -253,6 +253,19 @@ async def main():
     fresh = hub.Garden(h)
     fresh._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
     check(h.events == [], "beim Start wird nur der Stand gemerkt")
+
+    print("Sensor Wasser knapp")
+    _stubs.mod("homeassistant.components.binary_sensor", BinarySensorDeviceClass=_t.SimpleNamespace(PROBLEM="problem"), BinarySensorEntity=object)
+    bsm = importlib.import_module("greenbox.binary_sensor")
+    added_bs = []
+    await bsm.async_setup_entry(h, e1, added_bs.extend)
+    wl, dev = added_bs[0], h.data["greenbox"][e1.entry_id]
+    seen = []
+    for level in (None, 80, 22, 21, 5, 0):
+        dev.state.water = level
+        seen.append((wl.is_on, wl.extra_state_attributes["status"]))
+    check(seen == [(None, None), (False, "ok"), (False, "ok"), (True, "low"), (True, "low"), (True, "empty")] and wl._attr_device_class == "problem" and wl._attr_unique_id == f"{MAC1}_water_low",
+          "Wasser knapp: an bei niedrig/leer (Grenzen der App), Attribut status, Geräteklasse Problem")
 
     print("Cloud-Modus")
     local_before = json.dumps(g.local["boxes"][MAC1], sort_keys=True)

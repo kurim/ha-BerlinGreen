@@ -21,17 +21,25 @@ blueprint:
     message:
       name: Text / Message
       description: >-
-        Vorlage. Verfügbar: `trigger.event.data.plant`, `.box_name`, `.slot` (ab 1), `.area` (plants oder microgreens).
+        Vorlage. Verfügbar: `plant`, `box_name`, `slot` (ab 1), `area` (plants, microgreens oder mushrooms) und `where` (fertiger Ortstext).
       default: >-
-        {{ trigger.event.data.plant | default('Pflanze', true) }} ist erntereif
-        ({{ trigger.event.data.box_name }}, {{ 'Microgreens-Feld' if trigger.event.data.area == 'microgreens' else 'Slot' }}
-        {{ trigger.event.data.slot }}).
+        {{ plant }} ist erntereif ({{ box_name }}{{ ', ' ~ where if where else '' }}).
       selector:
         text:
           multiline: true
 
 mode: queued
 max_exceeded: silent
+
+variables:
+  # auch beim manuellen Ausführen (ohne Ereignis) ohne Fehler
+  data: "{{ trigger.event.data if trigger is defined and trigger.event is defined else {} }}"
+  plant: "{{ data.plant or 'Pflanze' }}"
+  box_name: "{{ data.box_name or 'GreenBox' }}"
+  slot: "{{ data.slot }}"
+  area: "{{ data.area }}"
+  where: >-
+    {% if not data.slot %}{% elif data.area == 'mushrooms' %}Pilz{% elif data.area == 'microgreens' %}Microgreens-Feld {{ data.slot }}{% else %}Slot {{ data.slot }}{% endif %}
 
 triggers:
   - trigger: event

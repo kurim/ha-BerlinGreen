@@ -1,20 +1,20 @@
 blueprint:
   name: GreenBox – Wasserstand kritisch / Water level critical
   description: >-
-    Schickt eine Push-Nachricht an die Home-Assistant-App, wenn der Wasserstatus einer GreenBox auf „niedrig“ oder „leer“ fällt.
-    Wähle den Sensor „Wasserstatus“ der Box. / Sends a push notification when a GreenBox water status drops to low or empty.
-    Choose the box's "Water status" sensor.
+    Schickt eine Push-Nachricht an die Home-Assistant-App, wenn der Wasserstand einer GreenBox niedrig oder leer ist.
+    Wähle den Binärsensor „Wasser knapp“ der Box. / Sends a push notification when a GreenBox water level is low or empty.
+    Choose the box's "Water low" binary sensor.
   domain: automation
   source_url: https://github.com/kurim/ha-BerlinGreen/blob/main/blueprints/automation/greenbox/water_low.yaml
   input:
-    water_status:
-      name: Wasserstatus-Sensor / Water status sensor
+    water_low:
+      name: Sensor „Wasser knapp“ / "Water low" sensor
       selector:
         entity:
           filter:
             - integration: greenbox
-              domain: sensor
-              device_class: enum
+              domain: binary_sensor
+              device_class: problem
     notify_device:
       name: Handy / Mobile device
       selector:
@@ -27,21 +27,24 @@ blueprint:
         text: {}
     message:
       name: Text / Message
-      description: "Vorlage. Verfügbar: `trigger.to_state` (Zustand `low` oder `empty`)."
+      description: "Vorlage. Verfügbar: `sensor_name` und `status` (`low` oder `empty`)."
       default: >-
-        {{ trigger.to_state.name }}: Wasser {{ 'ist leer' if trigger.to_state.state == 'empty' else 'wird knapp' }} – bitte nachfüllen.
+        {{ sensor_name }}: Wasser {{ 'ist leer' if status == 'empty' else 'wird knapp' }} – bitte nachfüllen.
       selector:
         text:
           multiline: true
 
 mode: single
 
+variables:
+  entity: !input water_low
+  sensor_name: "{{ state_attr(entity, 'friendly_name') or entity }}"
+  status: "{{ state_attr(entity, 'status') }}"
+
 triggers:
   - trigger: state
-    entity_id: !input water_status
-    to:
-      - low
-      - empty
+    entity_id: !input water_low
+    to: "on"
 
 actions:
   - device_id: !input notify_device
