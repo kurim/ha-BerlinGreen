@@ -1,3 +1,6 @@
+[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/kurim/ha-BerlinGreen/blob/main/README.md)
+[![de](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/kurim/ha-BerlinGreen/blob/main/README.de.md)
+
 # Berlin Green GreenBox for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
