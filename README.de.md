@@ -86,8 +86,13 @@ Erscheint die Karte nach einem Update nicht, den Browser-Cache leeren (Strg+F5).
 ## Benachrichtigungen (Push an die Home-Assistant-App)
 - **Erntereif:** Wird ein Topf oder ein Microgreens-Feld erntereif, löst die Integration das Ereignis `greenbox_harvest_ready` aus, mit `box`, `box_name`, `area`
   (`plants`/`microgreens`), `slot` (ab 1), `plant` und `plant_id`. Töpfe, die beim Start von Home Assistant schon reif sind, werden nicht erneut gemeldet.
-  Blueprint: [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fharvest_ready.yaml)
-- **Wasser kritisch:** Der Binärsensor „Wasser knapp“ einer Box geht an, wenn der Wasserstand niedrig oder leer ist (Attribut `status`: `ok`/`low`/`empty`). Blueprint: [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fwater_low.yaml)
+  Blueprint:
+  
+  [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fharvest_ready.yaml)
+- **Wasser kritisch:** Der Binärsensor „Wasser knapp“ einer Box geht an, wenn der Wasserstand niedrig oder leer ist (Attribut `status`: `ok`/`low`/`empty`).
+  Blueprint:
+  
+  [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fwater_low.yaml)
 
 Beide Blueprints fragen nach deinem Handy (Home-Assistant-App); Titel und Text kannst du anpassen. Jede andere Automation geht auch, z. B. mit dem Ereignis als
 Auslöser und `notify.mobile_app_<handy>`.
