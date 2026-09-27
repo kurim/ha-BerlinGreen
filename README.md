@@ -84,8 +84,13 @@ If the card does not show up after an update, clear the browser cache (Ctrl+F5).
 ## Notifications (push to the Home Assistant app)
 - **Harvest ready:** when a pot or microgreens field becomes ready, the integration fires the event `greenbox_harvest_ready` with `box`, `box_name`, `area`
   (`plants`/`microgreens`), `slot` (from 1), `plant` and `plant_id`. Pots that are already ready when Home Assistant starts are not reported again.
-  Blueprint: [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fharvest_ready.yaml)
-- **Water critical:** the binary sensor "Water low" of each box turns on when the water level is low or empty (attribute `status`: `ok`/`low`/`empty`). Blueprint: [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fwater_low.yaml)
+  Blueprint:
+  
+  [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fharvest_ready.yaml)
+- **Water critical:** the binary sensor "Water low" of each box turns on when the water level is low or empty (attribute `status`: `ok`/`low`/`empty`). 
+  Blueprint: 
+  
+  [![Open your Home Assistant instance and show the blueprint import dialog](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fkurim%2Fha-BerlinGreen%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgreenbox%2Fwater_low.yaml)
 
 Both blueprints ask for your phone (Home Assistant app) and let you edit title and text. Any other automation works too, e.g. trigger on the event and call
 `notify.mobile_app_<phone>`.
