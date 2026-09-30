@@ -1,5 +1,5 @@
 [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/kurim/ha-BerlinGreen/blob/main/README.md)
-[![de](https://img.shields.io/badge/lang-pt--br-green.svg)](https://github.com/kurim/ha-BerlinGreen/blob/main/README.de.md)
+[![de](https://img.shields.io/badge/lang-de-green.svg)](https://github.com/kurim/ha-BerlinGreen/blob/main/README.de.md)
 
 # Berlin Green GreenBox für Home Assistant
 
