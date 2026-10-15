@@ -71,9 +71,9 @@ class E:
 async def main():
     f = cf.GreenBoxConfigFlow()
     r = await f.async_step_user()
-    check(r["type"] == "menu" and r["options"] == ["ble", "cloud"], "Menü: Bluetooth-Box oder Cloud-Konto")
+    check(r["type"] == "menu" and r["options"] == ["ble", "mqtt", "cloud"], "Menü: Bluetooth-Box, MQTT-Box oder Cloud-Konto")
     f.entries = [E("greenbox_cloud", {"cloud": True})]
-    check((await f.async_step_user())["options"] == ["ble"], "mit vorhandenem Cloud-Konto nur noch Bluetooth-Box")
+    check((await f.async_step_user())["options"] == ["ble", "mqtt"], "mit vorhandenem Cloud-Konto kein zweites Cloud-Konto mehr")
     f.entries = [E(_stubs.MAC1, {"address": _stubs.MAC1})]
     r = await f.async_step_ble()
     check(list(r["schema"].schema.values())[0].container.keys() == {_stubs.MAC2}, "Auswahl: nur neue GreenBoxen (nicht eingerichtete/fremde Geräte ausgeblendet)")
@@ -81,6 +81,22 @@ async def main():
     check(r["type"] == "create" and r["data"] == {"address": _stubs.MAC2, "name": "GreenBoxTwo"}, "Bluetooth-Box anlegen")
     cf.async_discovered_service_info = lambda h, connectable=True: []
     check((await cf.GreenBoxConfigFlow().async_step_ble())["reason"] == "no_devices_found", "keine Box in Reichweite: klare Meldung")
+
+    f = cf.GreenBoxConfigFlow()
+    r = await f.async_step_mqtt()
+    check(r["type"] == "form" and r["step"] == "mqtt", "MQTT-Box: Formular")
+    r = await f.async_step_mqtt({"name": "GreenBox MQTT", "mqtt_base": "greenbox/8c4b14c8"})
+    check(r["type"] == "create" and r["data"] == {"mqtt_base": "greenbox/8c4b14c8", "name": "GreenBox MQTT"} and f.uid == "mqtt_greenbox/8c4b14c8",
+          "MQTT-Box anlegen")
+    check((await cf.GreenBoxConfigFlow().async_step_mqtt({"name": "x", "mqtt_base": "  /  "}))["errors"] == {"mqtt_base": "invalid_base_topic"},
+          "leeres Basis-Topic wird abgelehnt")
+    f2 = cf.GreenBoxConfigFlow(); f2.entries = [E("mqtt_greenbox/8c4b14c8", {"mqtt_base": "greenbox/8c4b14c8"})]
+    try:
+        await f2.async_step_mqtt({"name": "y", "mqtt_base": "greenbox/8c4b14c8"})
+        ok = False
+    except Abort:
+        ok = True
+    check(ok, "dieselbe MQTT-Box lässt sich kein zweites Mal anlegen")
 
     K = _stubs.FAKE_KEY
     async def _ok(): return {"refresh_token": "RT", "uid": "U"}

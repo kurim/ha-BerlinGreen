@@ -54,6 +54,33 @@ def frame_strip(strip: int, percent: int) -> bytes:
     return build_frame(T_STRIP[strip], bytes([0, percent]))
 
 
+# Typbyte -> MQTT-set-Key der Firmware (siehe BerlinGreen-FW/firmware/README.md). Reines Mapping, keine eigene
+# Bedeutung; damit braucht die MQTT-Anbindung (mqtt_device.py) keine eigene Kopie der Befehle aus number.py/select.py.
+_SET_KEY_BY_TYPE = {
+    T_STRIP[1]: "stripe1", T_STRIP[2]: "stripe2", T_STRIP[3]: "stripe3",
+    T_SWITCH_WORKDAYS: "start", T_SWITCH_WEEKEND: "start_weekend",
+    T_DURATION_WORKDAYS: "duration", T_DURATION_WEEKEND: "duration_weekend",
+}
+
+
+def decode_frame_to_set(frame: bytes) -> tuple[str, str] | None:
+    """Ein für die Box gebautes Frame (frame_strip/_override/_switch_time/_duration/_set_time) -> (MQTT-set-Key, Wert),
+    damit dieselben Aufrufe (device.async_write(frame)) über BLE *und* MQTT funktionieren."""
+    parsed = parse_frame(frame)
+    if parsed is None:
+        return None
+    type_byte, data = parsed
+    key = _SET_KEY_BY_TYPE.get(type_byte)
+    if key is not None:
+        return key, str(_u16(data))
+    if type_byte == T_OVERRIDE:
+        value = OVERRIDE_BY_VALUE.get(_u16(data))
+        return ("override", value) if value is not None else None
+    if type_byte == T_SET_TIME and len(data) == 4:
+        return "time", str(int.from_bytes(data, "big"))
+    return None
+
+
 def parse_frame(raw: bytes) -> tuple[int, bytes] | None:
     """Gültigen Frame -> (type, data), sonst None."""
     if len(raw) < 4 or raw[0] != START or raw[-1] != END or sum(raw) % 256 != 0:

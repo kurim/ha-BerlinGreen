@@ -25,6 +25,7 @@ from .library import GardenError, Library
 
 DOMAIN = "greenbox"
 CONF_CLOUD = "cloud"  # Eintrag ist das (optionale) Cloud-Konto, keine Bluetooth-Box
+CONF_MQTT_BASE = "mqtt_base"  # Eintrag ist eine Box über die Custom-Firmware-MQTT-Schnittstelle (keine Bluetooth-Box)
 CONF_API_KEY = "api_key"  # Firebase-API-Schlüssel der App (vom Nutzer eingetragen, siehe tools/extract_key.py)
 CONF_CANNABIS = "show_cannabis"
 EVENT_HARVEST_READY = "greenbox_harvest_ready"  # Ereignis, wenn ein Topf erntereif wird (für Benachrichtigungen)
@@ -321,9 +322,10 @@ class Garden:
         self.refresh()
 
     def keys_for(self, entry: ConfigEntry) -> list[str]:
-        """Welche Gärten legt dieser Eintrag an? Bluetooth-Box: ihren eigenen. Cloud-Konto: nur Boxen, die keine Bluetooth-Box haben."""
+        """Welche Gärten legt dieser Eintrag an? Bluetooth-Box: ihren eigenen. Cloud-Konto: nur Boxen, die keine
+        Bluetooth-Box haben. MQTT-Box: keiner (kein Bluetooth-Adresse -> kein Garten/Pflanzen-Tracking über MQTT)."""
         if not entry.data.get(CONF_CLOUD):
-            return [entry.data[CONF_ADDRESS]]
+            return [entry.data[CONF_ADDRESS]] if entry.data.get(CONF_ADDRESS) else []
         ble = set(self.ble_boxes())
         return [k for k in (self.coordinator.data or {}) if k not in ble]
 

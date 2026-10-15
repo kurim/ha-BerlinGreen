@@ -7,6 +7,7 @@
         "description": "Was möchtest du hinzufügen? Das Cloud-Konto ist optional: ohne läuft alles lokal.",
         "menu_options": {
           "ble": "Bluetooth-Box",
+          "mqtt": "Box über MQTT (Custom-Firmware)",
           "cloud": "Cloud-Konto der App (optional)"
         }
       },
@@ -19,6 +20,14 @@
       },
       "confirm": {
         "description": "{name} einrichten?"
+      },
+      "mqtt": {
+        "title": "GreenBox über MQTT",
+        "description": "Für Boxen mit der Custom-Firmware (siehe kurim/BerlinGreen-FW), die MQTT statt Bluetooth nutzen. Der Broker-Zugang kommt von der MQTT-Integration von Home Assistant, hier wird nur das Topic-Präfix der Box benötigt (Einstellung „mqtt_base“ der Firmware, Standard `greenbox` + MAC-Adresse der Box).",
+        "data": {
+          "name": "Name",
+          "mqtt_base": "MQTT-Basis-Topic"
+        }
       },
       "cloud": {
         "title": "Cloud-Konto",
@@ -52,7 +61,8 @@
     "error": {
       "invalid_auth": "E-Mail oder Passwort falsch (Anmeldung über Google/Apple wird nicht unterstützt).",
       "cannot_connect": "Verbindung fehlgeschlagen.",
-      "invalid_api_key": "Der API-Schlüssel ist ungültig oder für die App beschränkt. Er beginnt mit AIza und ist 39 Zeichen lang."
+      "invalid_api_key": "Der API-Schlüssel ist ungültig oder für die App beschränkt. Er beginnt mit AIza und ist 39 Zeichen lang.",
+      "invalid_base_topic": "Bitte ein MQTT-Basis-Topic angeben."
     },
     "abort": {
       "no_devices_found": "Keine GreenBox gefunden. Handy-App schließen und Bluetooth-Adapter/Proxy näher platzieren.",

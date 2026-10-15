@@ -3,6 +3,15 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.13.0] - 2026-10-15
+
+### Added
+- Neuer Einrichtungsweg **„Box über MQTT (Custom-Firmware)“**: für GreenBoxen mit der Custom-Firmware
+  ([kurim/BerlinGreen-FW](https://github.com/kurim/BerlinGreen-FW)) als Alternative zu Bluetooth. Nutzt die
+  MQTT-Integration von Home Assistant (kein eigener Broker-Zugang nötig), nur das Basis-Topic der Box wird
+  abgefragt. Dieselben Entitäten wie bei einer Bluetooth-Box (Licht, Zeitplan, Wasserstand, Taster-Konfiguration);
+  Garten/Pflanzen-Tracking bleibt eine Bluetooth-/Cloud-Funktion.
+
 ## [0.12.0] - 2026-09-26
 
 ### Added
