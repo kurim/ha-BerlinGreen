@@ -23,7 +23,7 @@
       },
       "mqtt": {
         "title": "GreenBox über MQTT",
-        "description": "Für Boxen mit der Custom-Firmware (siehe kurim/BerlinGreen-FW), die MQTT statt Bluetooth nutzen. Der Broker-Zugang kommt von der MQTT-Integration von Home Assistant, hier wird nur das Topic-Präfix der Box benötigt (Einstellung „mqtt_base“ der Firmware, Standard `greenbox/<mac>`).",
+        "description": "Für Boxen mit der Custom-Firmware (siehe kurim/BerlinGreen-FW), die MQTT statt Bluetooth nutzen. Der Broker-Zugang kommt von der MQTT-Integration von Home Assistant, hier wird nur das Topic-Präfix der Box benötigt (Einstellung „mqtt_base“ der Firmware, Standard `greenbox` + MAC-Adresse der Box).",
         "data": {
           "name": "Name",
           "mqtt_base": "MQTT-Basis-Topic"
