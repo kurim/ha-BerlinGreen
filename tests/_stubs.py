@@ -28,6 +28,10 @@ class ServiceValidationError(Exception):
     pass
 
 
+class HomeAssistantError(Exception):
+    pass
+
+
 class Store:
     """Speicher je Schlüssel, wie .storage/<key>."""
 
@@ -78,7 +82,7 @@ def install(catalog_dir: Path | None = None) -> None:
     mod("homeassistant.const", CONF_ADDRESS="address", CONF_NAME="name", CONF_EMAIL="email", CONF_PASSWORD="password",
         Platform=types.SimpleNamespace(BINARY_SENSOR="binary_sensor", BUTTON="button", NUMBER="number", SELECT="select", SENSOR="sensor", SWITCH="switch", TIME="time"))
     mod("homeassistant.core", HomeAssistant=object, ServiceCall=object, callback=lambda f: f)
-    mod("homeassistant.exceptions", ServiceValidationError=ServiceValidationError)
+    mod("homeassistant.exceptions", ServiceValidationError=ServiceValidationError, HomeAssistantError=HomeAssistantError)
     mod("homeassistant.helpers")
     cv = mod("homeassistant.helpers.config_validation", string=str)
     sys.modules["homeassistant.helpers"].config_validation = cv
@@ -87,9 +91,21 @@ def install(catalog_dir: Path | None = None) -> None:
     mod("homeassistant.helpers.update_coordinator", DataUpdateCoordinator=Coordinator)
     mod("homeassistant.loader", async_get_integration=_get_integration)
     mod("homeassistant.util")
-    dtu = mod("homeassistant.util.dt", utcnow=lambda: NOW)
+    dtu = mod("homeassistant.util.dt", utcnow=lambda: NOW, now=lambda: NOW)
     sys.modules["homeassistant.util"].dt = dtu
+    mqtt = mod("homeassistant.components.mqtt", async_subscribe=_mqtt_subscribe, async_publish=_mqtt_publish)
+    sys.modules["homeassistant.components"].mqtt = mqtt
     mod("aiohttp", ClientSession=object, ClientError=Exception, ClientTimeout=lambda **k: None)
+
+
+async def _mqtt_subscribe(hass, topic, msg_callback):
+    """Ersatz für die MQTT-Integration (nur für Tests, ohne Broker): merkt den Callback je Topic."""
+    hass.mqtt_subscriptions.setdefault(topic, []).append(msg_callback)
+    return lambda: hass.mqtt_subscriptions[topic].remove(msg_callback)
+
+
+async def _mqtt_publish(hass, topic, payload, qos=0, retain=False):
+    hass.mqtt_published.append((topic, payload, retain))
 
 
 async def _get_integration(hass, domain):

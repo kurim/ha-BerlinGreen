@@ -27,6 +27,7 @@ jobs:
       - run: python tests/test_metadata.py
       - run: python tests/test_logic.py
       - run: python tests/test_hub.py
+      - run: python tests/test_mqtt_device.py
       - run: python tests/test_photos.py
       - run: python tests/test_api.py
       - run: python tests/test_flow.py

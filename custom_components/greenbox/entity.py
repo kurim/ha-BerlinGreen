@@ -22,7 +22,7 @@ class GreenBoxEntity(Entity):
             manufacturer="Berlin Green",
             model="GreenBox",
             sw_version=st.firmware_name,
-            connections={("bluetooth", device.address)},
+            connections={("bluetooth", device.address)} if getattr(device, "uses_bluetooth", True) else set(),
         )
 
     @property

@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .entity import GreenBoxEntity
-from .hub import CONF_CLOUD, DOMAIN
+from .hub import CONF_ADDRESS, CONF_CLOUD, DOMAIN
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -18,7 +18,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         async_add_entities([UpdateCatalog(hass, entry)])
     else:
         device = hass.data[DOMAIN][entry.entry_id]
-        async_add_entities([GreenBoxSyncTime(device), ImportFromCloud(hass.data[DOMAIN]["_garden"], device.address)])
+        entities = [GreenBoxSyncTime(device)]
+        if entry.data.get(CONF_ADDRESS):  # "Garten aus der Cloud übernehmen" gibt es nur für Bluetooth-Boxen
+            entities.append(ImportFromCloud(hass.data[DOMAIN]["_garden"], device.address))
+        async_add_entities(entities)
 
 
 class GreenBoxSyncTime(GreenBoxEntity, ButtonEntity):

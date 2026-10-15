@@ -18,7 +18,8 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.loader import async_get_integration
 
 from .device import GreenBoxDevice
-from .hub import CONF_CLOUD, DOMAIN, Garden
+from .hub import CONF_CLOUD, CONF_MQTT_BASE, DOMAIN, Garden
+from .mqtt_device import GreenBoxMqttDevice
 from .photos import PHOTO_URL
 
 _LOGGER = logging.getLogger(__name__)
@@ -134,6 +135,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         garden.configure()
         await garden.coordinator.async_refresh()
         platforms = CLOUD_PLATFORMS
+    elif entry.data.get(CONF_MQTT_BASE):
+        device = GreenBoxMqttDevice(hass, entry.data[CONF_MQTT_BASE], entry.data.get(CONF_NAME) or entry.title)
+        hass.data[DOMAIN][entry.entry_id] = device
+        await device.async_start()
+        platforms = BOX_PLATFORMS
     else:
         device = GreenBoxDevice(hass, entry.data[CONF_ADDRESS], entry.data.get(CONF_NAME) or entry.title)
         hass.data[DOMAIN][entry.entry_id] = device

@@ -207,6 +207,13 @@ summer, winter = datetime(2026, 9, 26, 12, tzinfo=ZoneInfo("Europe/Berlin")), da
 check(proto.local_from_raw(600, summer, True) == (8, 0) and proto.raw_from_local(8, 0, summer, True) == 600 and proto.raw_from_local(8, 0, winter, True) == 700, "Schaltzeit: UTC-Umrechnung mit Sommer-/Winterzeit")
 check(all(proto.local_from_raw(proto.raw_from_local(h, m, r, True), r, True) == (h, m) for r in (summer, winter) for h in range(24) for m in (0, 30, 59)), "Umrechnung ist umkehrbar (auch über Mitternacht)")
 check(proto.uses_utc(3) is True and proto.uses_utc(4) is False and proto.uses_utc(None) is None and proto.parse_config("1,0,1") == (True, "plus"), "Firmware-Regel und Konfigurationsfeld")
+check(proto.decode_frame_to_set(proto.frame_strip(2, 42)) == ("stripe2", "42")
+      and proto.decode_frame_to_set(proto.frame_override(1)) == ("override", "on")
+      and proto.decode_frame_to_set(proto.frame_switch_time(True, 1830)) == ("start_weekend", "1830")
+      and proto.decode_frame_to_set(proto.frame_duration(False, 14)) == ("duration", "14")
+      and proto.decode_frame_to_set(proto.frame_set_time(1760000000)) == ("time", "1760000000")
+      and proto.decode_frame_to_set(bytes.fromhex("ee4f0003d2ef")) is None,
+      "Frame -> MQTT-set-Key (device.async_write() über MQTT statt BLE, siehe mqtt_device.py)")
 try:
     proto.frame_duration(False, 11)
     ok = False

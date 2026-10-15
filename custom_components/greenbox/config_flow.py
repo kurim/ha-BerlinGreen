@@ -11,12 +11,13 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ApiError, ApiKeyError, AuthError, sign_in, valid_key_format
-from .hub import CONF_API_KEY, CONF_CANNABIS, CONF_CLOUD
+from .hub import CONF_API_KEY, CONF_CANNABIS, CONF_CLOUD, CONF_MQTT_BASE
 
 DOMAIN = "greenbox"
 PREFIX = "GreenBox"
 CLOUD_UNIQUE_ID = "greenbox_cloud"
 CLOUD_SCHEMA = vol.Schema({vol.Required(CONF_EMAIL): str, vol.Required(CONF_PASSWORD): str, vol.Required(CONF_API_KEY): str})
+MQTT_SCHEMA = vol.Schema({vol.Required(CONF_NAME): str, vol.Required(CONF_MQTT_BASE): str})
 
 
 class GreenBoxConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -28,7 +29,8 @@ class GreenBoxConfigFlow(ConfigFlow, domain=DOMAIN):
     # --- Einstieg -------------------------------------------------------------------------------
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         has_cloud = any(e.data.get(CONF_CLOUD) for e in self._async_current_entries())
-        return self.async_show_menu(step_id="user", menu_options=["ble"] if has_cloud else ["ble", "cloud"])
+        options = ["ble", "mqtt"] if has_cloud else ["ble", "mqtt", "cloud"]
+        return self.async_show_menu(step_id="user", menu_options=options)
 
     # --- Bluetooth-Box ----------------------------------------------------------------------------
     async def async_step_bluetooth(self, discovery_info: BluetoothServiceInfoBleak) -> ConfigFlowResult:
@@ -66,6 +68,19 @@ class GreenBoxConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="ble",
             data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In({a: f"{n} ({a})" for a, n in found.items()})}),
         )
+
+    # --- MQTT-Box (eigene Firmware, Broker-Zugang kommt von der MQTT-Integration) -------------------------------
+    async def async_step_mqtt(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            base = user_input[CONF_MQTT_BASE].strip().strip("/")
+            if not base:
+                errors[CONF_MQTT_BASE] = "invalid_base_topic"
+            else:
+                await self.async_set_unique_id(f"mqtt_{base}")
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(title=user_input[CONF_NAME], data={CONF_MQTT_BASE: base, CONF_NAME: user_input[CONF_NAME]})
+        return self.async_show_form(step_id="mqtt", data_schema=self.add_suggested_values_to_schema(MQTT_SCHEMA, user_input or {}), errors=errors)
 
     # --- Cloud-Konto (optional; geschrieben wird nur bei Boxen im Cloud-Modus) -------------------------------------------------------
     async def _login(self, email: str, password: str, api_key: str) -> tuple[dict[str, str] | None, dict[str, str]]:
