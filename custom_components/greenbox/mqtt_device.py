@@ -60,6 +60,8 @@ class GreenBoxMqttDevice:
         self.state = BoxState()
         self.intent: dict[str, tuple[int, int, int]] = {}
         self.temp_idx = 2
+        self.ble_address: str | None = None  # vom Gerät gemeldet; Kennung für Garten/Cloud
+        self.on_ble_address: Callable[[str], None] | None = None
         self._available = False
         self._callbacks: list[Callable[[], None]] = []
         self._unsub_state: Callable[[], None] | None = None
@@ -112,6 +114,12 @@ class GreenBoxMqttDevice:
         st.strips = {1: data.get("stripe1"), 2: data.get("stripe2"), 3: data.get("stripe3")}
         st.water = data.get("water")
         st.firmware = data.get("fw_byte")
+        st.firmware_version = data.get("fw")
+        ble = str(data.get("ble") or "").upper()
+        if ble and ble != self.ble_address:
+            self.ble_address = ble
+            if self.on_ble_address:
+                self.on_ble_address(ble)
         start = _parse_hhmm(data.get("start", ""))
         if start is not None:
             st.switch_workdays = start
