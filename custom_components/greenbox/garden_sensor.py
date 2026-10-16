@@ -4,6 +4,7 @@ from __future__ import annotations
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -35,6 +36,13 @@ def setup_garden_entities(hass: HomeAssistant, entry: ConfigEntry, async_add_ent
             new.extend(SlotSensor(coordinator, box_id, s["slot"], "microgreens") for s in box["microgreens"])
         if new:
             async_add_entities(new)
+        gone = known - set(garden.keys_for(entry))
+        if gone and coordinator.data is not None:
+            registry = dr.async_get(hass)
+            for box_id in gone:
+                known.discard(box_id)
+                if device := registry.async_get_device(identifiers={(DOMAIN, box_id)}):
+                    registry.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
 
     add_new()
     entry.async_on_unload(coordinator.async_add_listener(add_new))
@@ -51,7 +59,12 @@ class _Base(CoordinatorEntity):
             # Gerät gehört der Bluetooth-Box (gleiche Kennung = Adresse): nur zuordnen, Namen dort nicht überschreiben
             self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, box_id)})
         else:
-            self._attr_device_info = DeviceInfo(identifiers={(DOMAIN, box_id)}, name=box["name"], manufacturer="Berlin Green", model="GreenBox")
+            # Cloud-Box ohne eigene Bluetooth-/MQTT-Box: Seriennummer + Zusatz im Namen, wenn mehrere gleich heißen
+            name = box["name"]
+            if sum(str(b["name"]).lower() == str(name).lower() for b in coordinator.data.values()) > 1:
+                name = f"{name} ({box_id[-5:]})"
+            self._attr_device_info = DeviceInfo(
+                identifiers={(DOMAIN, box_id)}, name=name, manufacturer="Berlin Green", model="GreenBox (Cloud)", serial_number=box_id)
 
     @property
     def _box(self) -> dict | None:

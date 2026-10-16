@@ -18,8 +18,13 @@
           "address": "Gerät"
         }
       },
-      "confirm": {
-        "description": "{name} einrichten?"
+      "firmware": {
+        "title": "GreenBox",
+        "description": "{name} gefunden. Welche Firmware läuft auf der Box?",
+        "menu_options": {
+          "firmware_official": "Offizielle Firmware (Bluetooth)",
+          "firmware_custom": "Custom-Firmware (MQTT)"
+        }
       },
       "mqtt": {
         "title": "GreenBox über MQTT",
@@ -206,6 +211,9 @@
           "show_cannabis": "Cannabis-Mix und -Pflanzen anzeigen (nur für Volljährige)"
         }
       }
+    },
+    "abort": {
+      "no_options": "Das Cloud-Konto hat keine Optionen. Anmeldedaten ändern: über das Menü (⋮) des Eintrags „Neu konfigurieren“."
     }
   },
   "services": {

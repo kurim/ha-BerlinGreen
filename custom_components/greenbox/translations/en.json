@@ -18,8 +18,13 @@
           "address": "Device"
         }
       },
-      "confirm": {
-        "description": "Set up {name}?"
+      "firmware": {
+        "title": "GreenBox",
+        "description": "Found {name}. Which firmware is running on the box?",
+        "menu_options": {
+          "firmware_official": "Official firmware (Bluetooth)",
+          "firmware_custom": "Custom firmware (MQTT)"
+        }
       },
       "mqtt": {
         "title": "GreenBox over MQTT",
@@ -206,6 +211,9 @@
           "show_cannabis": "Show cannabis mix and plants (adults only)"
         }
       }
+    },
+    "abort": {
+      "no_options": "The cloud account has no options. To change the sign-in, use \"Reconfigure\" in the entry's menu (⋮)."
     }
   },
   "services": {

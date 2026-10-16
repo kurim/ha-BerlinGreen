@@ -1,11 +1,26 @@
 # Changelog
 
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
-Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
+Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notable changes are listed here.
 
-## [0.14.0] - 2026-10-16
+## [2026.10.0] - 2026-10-16
+
+Ab dieser Version zählt die Versionsnummer wie bei Home Assistant: `JAHR.MONAT.PATCH`. / From now on versions follow
+Home Assistant's scheme: `YEAR.MONTH.PATCH`.
 
 ### Added
+- Wird eine Bluetooth-Box entdeckt (oder ausgewählt), fragt die Einrichtung jetzt, ob **offizielle Firmware** (Bluetooth)
+  oder **Custom-Firmware** (MQTT) läuft. Bei Custom geht es mit dem MQTT-Schritt weiter, Name und Basis-Topic sind
+  vorbelegt, und die Box wird nicht noch einmal als „entdeckt“ angeboten.
+
+### Fixed
+- Der Zahnrad-Dialog des Cloud-Kontos zeigte nur `no_options`; jetzt steht dort ein lesbarer Hinweis.
+- Boxen, die nicht mehr in der Cloud sind (oder nicht mehr eingerichtet), verschwinden mit ihren Geräten aus dem
+  Garten. Ihre Daten bleiben gespeichert, falls sie zurückkommen.
+- Cloud-Boxen sind im Geräteregister besser zu unterscheiden: Modell „GreenBox (Cloud)“, Seriennummer, und bei gleichen
+  Namen ein Zusatz mit den letzten Zeichen der Kennung.
+
+### Changed (zuvor als 0.14.0 geplant)
 - MQTT-Boxen bekommen **Garten, Slots, Microgreens und Cloud-Abgleich**, sobald die Firmware (ab 5.0.3) ihre
   Bluetooth-Adresse im `state` mitsendet: sie dient als Kennung der Box, passend zur App-Cloud. Der Eintrag
   merkt sich die Adresse und lädt einmalig neu.
