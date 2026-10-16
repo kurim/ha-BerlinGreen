@@ -129,6 +129,14 @@ async def _get_garden(hass: HomeAssistant) -> Garden:
         return garden
 
 
+@callback
+def _dismiss_discovery(hass: HomeAssistant, address: str | None) -> None:
+    """Offene „Entdeckt“-Karte dieser Box schließen (sie ist als MQTT-Box schon eingerichtet)."""
+    for flow in hass.config_entries.flow.async_progress_by_handler(DOMAIN):
+        if address and flow["context"].get("unique_id") == address:
+            hass.config_entries.flow.async_abort(flow["flow_id"])
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     garden = await _get_garden(hass)
     if entry.data.get(CONF_CLOUD):
@@ -138,6 +146,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     elif entry.data.get(CONF_MQTT_BASE):
         device = GreenBoxMqttDevice(hass, entry.data[CONF_MQTT_BASE], entry.data.get(CONF_NAME) or entry.title)
         device.ble_address = entry.data.get(CONF_BLE_ADDRESS)
+        _dismiss_discovery(hass, device.ble_address)
 
         @callback
         def learn_ble_address(address: str) -> None:

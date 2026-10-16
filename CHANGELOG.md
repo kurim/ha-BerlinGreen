@@ -3,6 +3,11 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notable changes are listed here.
 
+## [2026.10.1] - 2026-10-16
+
+### Fixed
+- Eine MQTT-Box, deren Bluetooth-Adresse bekannt ist, schließt ihre offene „Entdeckt“-Karte jetzt selbst (vorher blieb sie bis zum Neustart stehen). / An MQTT box with a known Bluetooth address now closes its open "Discovered" card.
+
 ## [2026.10.0] - 2026-10-16
 
 Ab dieser Version zählt die Versionsnummer wie bei Home Assistant: `JAHR.MONAT.PATCH`. / From now on versions follow
