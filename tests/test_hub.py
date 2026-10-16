@@ -189,6 +189,15 @@ async def main():
     check(not g.lib.is_empty and cloud.catalog_calls == 1 and Store.data["greenbox_catalog"]["mixes"], "Katalog wird nach dem Verbinden einmal automatisch geladen und gespeichert")
     await g.coordinator.async_refresh()
     check(cloud.catalog_calls == 1, "danach nicht erneut")
+    cloud.boxes = [box(MAC1, "Cloud name")]
+    await g.coordinator.async_refresh()
+    check(CLOUD_ONLY not in g.coordinator.data and g.keys_for(ce) == [], "in der Cloud entfernte Box verschwindet aus dem Garten")
+    cloud.mode = "net"
+    cloud.boxes = None
+    await g.coordinator.async_refresh()
+    cloud.mode = "ok"
+    await g.coordinator.async_refresh()
+    check(CLOUD_ONLY in g.coordinator.data, "taucht sie in der Cloud wieder auf, ist sie wieder da")
     check(g.coordinator.data[MAC1]["source"] == "local" and g.coordinator.data[CLOUD_ONLY]["source"] == "cloud" and g.coordinator.data[CLOUD_ONLY]["ble"] is False, "lokale Bepflanzung hat Vorrang, Cloud-Box ohne Bluetooth zeigt den Cloud-Stand")
     check(h.config_entries.updated and h.config_entries.updated[-1]["refresh_token"] == "ROTATED", "erneuertes Token landet im Cloud-Eintrag")
     print("Garten aus der Cloud übernehmen (Button)")

@@ -57,6 +57,7 @@ class Garden:
         self._photo_task: asyncio.Task | None = None
         self.cloud: GreenboxCloud | None = None
         self.raw_cloud: dict[str, dict] = {}
+        self.cloud_fresh = False  # letzter Cloud-Abruf war erfolgreich (erst dann gilt "nicht in der Cloud" = entfernt)
         self._reauth_started = False
         self._boxes: set[str] = set()
         self._ready: set[tuple[str, str, int]] | None = None  # aktuell erntereife Töpfe (None = noch nicht ausgewertet)
@@ -147,7 +148,7 @@ class Garden:
         token = entry.data.get("refresh_token") if entry else None
         key = entry.data.get(CONF_API_KEY) if entry else None
         if not token or not key:
-            self.cloud, self.raw_cloud = None, {}
+            self.cloud, self.raw_cloud, self.cloud_fresh = None, {}, False
             if entry and token and not key and not self._reauth_started:
                 # Eintrag aus Version 0.5.0: der API-Schlüssel wird jetzt abgefragt
                 self._reauth_started = True
@@ -169,14 +170,17 @@ class Garden:
             try:
                 raw = await self.cloud.fetch()
                 self.raw_cloud = {b["box_id"]: b for b in raw.get("box", [])}
+                self.cloud_fresh = True
                 if self.cloud.refresh_token != entry.data.get("refresh_token"):  # Google kann das Token erneuern
                     self.hass.config_entries.async_update_entry(entry, data={**entry.data, "refresh_token": self.cloud.refresh_token})
             except (AuthError, ApiKeyError) as err:
+                self.cloud_fresh = False
                 _LOGGER.warning("Cloud-Anmeldung abgelehnt: %s", err)
                 if not self._reauth_started:
                     self._reauth_started = True
                     entry.async_start_reauth(self.hass)
             except ApiError as err:
+                self.cloud_fresh = False
                 _LOGGER.warning("Cloud nicht erreichbar, verwende letzten Stand: %s", err)
             else:
                 if self.lib.is_empty and self._catalog_attempts < 3:  # ohne Katalog automatisch (bis zu dreimal) versuchen
@@ -215,7 +219,12 @@ class Garden:
     def views(self) -> dict[str, dict[str, Any]]:
         now, ble = dt_util.utcnow(), self.ble_boxes()
         out: dict[str, dict[str, Any]] = {}
+        # Eine nur lokal gespeicherte Box (nicht mehr eingerichtet, nicht mehr in der Cloud) verschwindet aus der Ansicht; ihre
+        # Daten bleiben im Speicher, falls sie wieder auftaucht. Ohne verlässlichen Cloud-Stand wird nichts ausgeblendet.
+        prune = self.cloud is None or self.cloud_fresh
         for key in dict.fromkeys([*self.raw_cloud, *ble, *self.local["boxes"]]):
+            if prune and key not in ble and key not in self.raw_cloud:
+                continue
             rec = self.local["boxes"].get(key)
             if self.synced(key):
                 shape, source = self.raw_cloud[key], "cloud"

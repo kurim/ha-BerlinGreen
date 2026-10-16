@@ -27,7 +27,7 @@ class BaseFlow:
     def _abort_if_unique_id_configured(self):
         if self.uid in {e.unique_id for e in self.entries}:
             raise Abort("already_configured")
-    def async_show_menu(self, step_id, menu_options): return {"type": "menu", "step": step_id, "options": menu_options}
+    def async_show_menu(self, step_id, menu_options, description_placeholders=None): return {"type": "menu", "step": step_id, "options": menu_options, "ph": description_placeholders}
     def async_show_form(self, step_id, data_schema=None, errors=None, description_placeholders=None): return {"type": "form", "step": step_id, "errors": errors or {}, "schema": data_schema}
     def async_create_entry(self, title, data=None): return {"type": "create", "title": title, "data": data}
     def async_abort(self, reason): return {"type": "abort", "reason": reason}
@@ -78,7 +78,22 @@ async def main():
     r = await f.async_step_ble()
     check(list(r["schema"].schema.values())[0].container.keys() == {_stubs.MAC2}, "Auswahl: nur neue GreenBoxen (nicht eingerichtete/fremde Geräte ausgeblendet)")
     r = await f.async_step_ble({"address": _stubs.MAC2})
-    check(r["type"] == "create" and r["data"] == {"address": _stubs.MAC2, "name": "GreenBoxTwo"}, "Bluetooth-Box anlegen")
+    check(r["type"] == "menu" and r["step"] == "firmware" and r["options"] == ["firmware_official", "firmware_custom"], "gewählte Box: Frage nach der Firmware")
+    r = await f.async_step_firmware_official()
+    check(r["type"] == "create" and r["data"] == {"address": _stubs.MAC2, "name": "GreenBoxTwo"}, "offizielle Firmware: Bluetooth-Box anlegen")
+    f = cf.GreenBoxConfigFlow()
+    r = await f.async_step_bluetooth(Info("AA:BB:CC:DD:EE:0A", "GreenBoxAABBCCDD"))
+    check(r["type"] == "menu" and r["step"] == "firmware" and r["ph"] == {"name": "GreenBoxAABBCCDD"}, "Bluetooth-Entdeckung fragt: offizielle oder Custom-Firmware")
+    r = await f.async_step_firmware_custom()
+    check(r["type"] == "form" and r["step"] == "mqtt", "Custom-Firmware führt zum MQTT-Schritt")
+    r = await f.async_step_mqtt({"name": "GreenBoxAABBCCDD", "mqtt_base": "greenbox/aabbccddee08"})
+    check(r["type"] == "create" and r["data"] == {"mqtt_base": "greenbox/aabbccddee08", "name": "GreenBoxAABBCCDD", "ble_address": "AA:BB:CC:DD:EE:0A"},
+          "MQTT-Box aus der Entdeckung merkt sich die Bluetooth-Adresse")
+    check(cf.default_mqtt_base("AA:BB:CC:DD:EE:0A") == "greenbox/aabbccddee08" and cf.default_mqtt_base("00:00:00:00:00:01") == "greenbox/0000000000ff",
+          "Basis-Topic-Vorschlag: Bluetooth-Adresse minus 2 = WLAN-MAC")
+    f = cf.GreenBoxConfigFlow(); f.entries = [E("mqtt_greenbox/aabbccddee08", {"mqtt_base": "greenbox/aabbccddee08", "ble_address": "AA:BB:CC:DD:EE:0A"})]
+    r = await f.async_step_bluetooth(Info("AA:BB:CC:DD:EE:0A", "GreenBoxAABBCCDD"))
+    check(r["type"] == "abort" and r["reason"] == "already_configured", "als MQTT-Box eingerichtete Box wird per Bluetooth nicht erneut angeboten")
     cf.async_discovered_service_info = lambda h, connectable=True: []
     check((await cf.GreenBoxConfigFlow().async_step_ble())["reason"] == "no_devices_found", "keine Box in Reichweite: klare Meldung")
 
