@@ -5,6 +5,9 @@ Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notab
 
 ## [2026.10.1] - 2026-10-16
 
+### Changed
+- „Hinzufügen“ fragt nicht mehr nach Bluetooth- oder MQTT-Box: es geht gleich zur Auswahl der gefundenen Boxen, danach kommt die Frage nach der Firmware. Ist keine Box in Reichweite, öffnet sich das MQTT-Formular zum manuellen Anlegen. / "Add" goes straight to the found boxes; with none in range the MQTT form opens.
+
 ### Fixed
 - Eine MQTT-Box, deren Bluetooth-Adresse bekannt ist, schließt ihre offene „Entdeckt“-Karte jetzt selbst (vorher blieb sie bis zum Neustart stehen). / An MQTT box with a known Bluetooth address now closes its open "Discovered" card.
 

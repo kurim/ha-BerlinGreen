@@ -6,8 +6,7 @@
         "title": "GreenBox",
         "description": "What would you like to add? The cloud account is optional: without it everything runs locally.",
         "menu_options": {
-          "ble": "Bluetooth box",
-          "mqtt": "Box over MQTT (custom firmware)",
+          "ble": "Add a box",
           "cloud": "App cloud account (optional)"
         }
       },

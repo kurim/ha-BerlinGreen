@@ -71,9 +71,10 @@ class E:
 async def main():
     f = cf.GreenBoxConfigFlow()
     r = await f.async_step_user()
-    check(r["type"] == "menu" and r["options"] == ["ble", "mqtt", "cloud"], "Menü: Bluetooth-Box, MQTT-Box oder Cloud-Konto")
+    check(r["type"] == "menu" and r["options"] == ["ble", "cloud"], "Menü: Box hinzufügen oder Cloud-Konto")
     f.entries = [E("greenbox_cloud", {"cloud": True})]
-    check((await f.async_step_user())["options"] == ["ble", "mqtt"], "mit vorhandenem Cloud-Konto kein zweites Cloud-Konto mehr")
+    r = await f.async_step_user()
+    check(r["type"] == "form" and r["step"] == "ble", "mit vorhandenem Cloud-Konto: gleich zur Auswahl der gefundenen Boxen")
     f.entries = [E(_stubs.MAC1, {"address": _stubs.MAC1})]
     r = await f.async_step_ble()
     check(list(r["schema"].schema.values())[0].container.keys() == {_stubs.MAC2}, "Auswahl: nur neue GreenBoxen (nicht eingerichtete/fremde Geräte ausgeblendet)")
@@ -95,7 +96,8 @@ async def main():
     r = await f.async_step_bluetooth(Info("AA:BB:CC:DD:EE:0A", "GreenBoxAABBCCDD"))
     check(r["type"] == "abort" and r["reason"] == "already_configured", "als MQTT-Box eingerichtete Box wird per Bluetooth nicht erneut angeboten")
     cf.async_discovered_service_info = lambda h, connectable=True: []
-    check((await cf.GreenBoxConfigFlow().async_step_ble())["reason"] == "no_devices_found", "keine Box in Reichweite: klare Meldung")
+    r = await cf.GreenBoxConfigFlow().async_step_ble()
+    check(r["type"] == "form" and r["step"] == "mqtt", "keine Box in Reichweite: MQTT-Box von Hand anlegen")
 
     f = cf.GreenBoxConfigFlow()
     r = await f.async_step_mqtt()

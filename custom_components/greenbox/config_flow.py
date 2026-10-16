@@ -35,9 +35,9 @@ class GreenBoxConfigFlow(ConfigFlow, domain=DOMAIN):
 
     # --- Einstieg -------------------------------------------------------------------------------
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        has_cloud = any(e.data.get(CONF_CLOUD) for e in self._async_current_entries())
-        options = ["ble", "mqtt"] if has_cloud else ["ble", "mqtt", "cloud"]
-        return self.async_show_menu(step_id="user", menu_options=options)
+        if any(e.data.get(CONF_CLOUD) for e in self._async_current_entries()):
+            return await self.async_step_ble()  # nur eine Box hinzufügen: gleich zur Auswahl der gefundenen Boxen
+        return self.async_show_menu(step_id="user", menu_options=["ble", "cloud"])
 
     # --- Bluetooth-Box ----------------------------------------------------------------------------
     def _known_addresses(self) -> set[str | None]:
@@ -80,8 +80,8 @@ class GreenBoxConfigFlow(ConfigFlow, domain=DOMAIN):
             address = user_input[CONF_ADDRESS]
             self._candidate = (address, found[address])
             return await self.async_step_firmware()
-        if not found:
-            return self.async_abort(reason="no_devices_found")
+        if not found:  # nichts in Bluetooth-Reichweite: MQTT-Box von Hand anlegen
+            return await self.async_step_mqtt()
         return self.async_show_form(
             step_id="ble",
             data_schema=vol.Schema({vol.Required(CONF_ADDRESS): vol.In({a: f"{n} ({a})" for a, n in found.items()})}),
