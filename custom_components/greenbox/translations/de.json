@@ -6,8 +6,7 @@
         "title": "GreenBox",
         "description": "Was möchtest du hinzufügen? Das Cloud-Konto ist optional: ohne läuft alles lokal.",
         "menu_options": {
-          "ble": "Bluetooth-Box",
-          "mqtt": "Box über MQTT (Custom-Firmware)",
+          "ble": "Box hinzufügen",
           "cloud": "Cloud-Konto der App (optional)"
         }
       },
