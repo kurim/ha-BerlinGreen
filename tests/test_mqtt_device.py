@@ -89,6 +89,16 @@ async def main():
         ok = True
     check(ok, "ohne Verbindung wird kein Befehl gesendet (HomeAssistantError)")
 
+    dev3 = md.GreenBoxMqttDevice(make_hass(), "greenbox/y", "y")
+    learned = []
+    dev3.on_ble_address = learned.append
+    dev3._on_state(Msg(json.dumps({**STATE, "ble": "aa:bb:cc:dd:ee:03", "fw": "5.0.3"})))
+    check(dev3.ble_address == "AA:BB:CC:DD:EE:03" and learned == ["AA:BB:CC:DD:EE:03"], "gemeldete BLE-Adresse wird (groß) übernommen und gemeldet")
+    dev3._on_state(Msg(json.dumps({**STATE, "ble": "aa:bb:cc:dd:ee:03", "fw": "5.0.3"})))
+    check(len(learned) == 1, "gleiche Adresse löst nichts erneut aus")
+    check(dev3.state.firmware_name == "5.0.3", "Firmware-Anzeige zeigt die echte Version statt des Kompatibilitätswerts")
+    check(dev3.schedule_view("workdays") is not None, "Kompatibilitätsbyte (fw_byte) steuert weiter die Zeitlogik")
+
     print("\n" + ("%d FEHLER" % fails if fails else "alle Tests ok"))
     exit(1 if fails else 0)
 

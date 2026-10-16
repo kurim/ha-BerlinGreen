@@ -265,6 +265,7 @@ class BoxState:
     duration_weekend: int | None = None
     blink_on_low_water: bool | None = None
     box_type: str | None = None
+    firmware_version: str | None = None  # echte Versionsnummer der Custom-Firmware (nur MQTT); firmware = Kompatibilitätsbyte
 
     def apply(self, type_byte: int, data: bytes) -> bool:
         """Übernimmt einen Frame. True, wenn sich ein Wert geändert hat."""
@@ -294,6 +295,8 @@ class BoxState:
 
     @property
     def firmware_name(self) -> str | None:
+        if self.firmware_version:
+            return self.firmware_version
         return None if self.firmware is None else FIRMWARE_NAMES.get(self.firmware, f"unbekannt ({self.firmware})")
 
     @property

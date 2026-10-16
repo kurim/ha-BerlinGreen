@@ -18,7 +18,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.loader import async_get_integration
 
 from .device import GreenBoxDevice
-from .hub import CONF_CLOUD, CONF_MQTT_BASE, DOMAIN, Garden
+from .hub import CONF_BLE_ADDRESS, CONF_CLOUD, CONF_MQTT_BASE, DOMAIN, Garden
 from .mqtt_device import GreenBoxMqttDevice
 from .photos import PHOTO_URL
 
@@ -137,8 +137,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         platforms = CLOUD_PLATFORMS
     elif entry.data.get(CONF_MQTT_BASE):
         device = GreenBoxMqttDevice(hass, entry.data[CONF_MQTT_BASE], entry.data.get(CONF_NAME) or entry.title)
+        device.ble_address = entry.data.get(CONF_BLE_ADDRESS)
+
+        @callback
+        def learn_ble_address(address: str) -> None:
+            # Update-Listener lädt den Eintrag neu -> Garten-/Cloud-Entitäten der Box entstehen
+            hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_BLE_ADDRESS: address})
+
+        device.on_ble_address = learn_ble_address
         hass.data[DOMAIN][entry.entry_id] = device
         await device.async_start()
+        garden.configure()
+        garden.refresh()
         platforms = BOX_PLATFORMS
     else:
         device = GreenBoxDevice(hass, entry.data[CONF_ADDRESS], entry.data.get(CONF_NAME) or entry.title)

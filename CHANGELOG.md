@@ -3,6 +3,15 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen nach [SemVer](https://semver.org/lang/de/). / All notable changes are listed here.
 
+## [0.14.0] - 2026-10-16
+
+### Added
+- MQTT-Boxen bekommen **Garten, Slots, Microgreens und Cloud-Abgleich**, sobald die Firmware (ab 5.0.3) ihre
+  Bluetooth-Adresse im `state` mitsendet: sie dient als Kennung der Box, passend zur App-Cloud. Der Eintrag
+  merkt sich die Adresse und lädt einmalig neu.
+- Firmware-Sensor und Geräteinfo einer MQTT-Box zeigen die echte Firmware-Version (`fw`) statt des
+  Kompatibilitätswerts „2.0.3“.
+
 ## [0.13.0] - 2026-10-15
 
 ### Added

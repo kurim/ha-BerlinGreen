@@ -9,13 +9,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import GreenBoxEntity
 from .garden_sensor import setup_garden_entities
-from .hub import CONF_ADDRESS, CONF_CLOUD
+from .hub import CONF_CLOUD, box_key
 from .protocol import water_status
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    # Garten je Box (Cloud-Eintrag: Boxen ohne Bluetooth); MQTT-Box hat keine Bluetooth-Adresse -> kein Garten-Feature
-    if entry.data.get(CONF_CLOUD) or entry.data.get(CONF_ADDRESS):
+    # Garten je Box (Cloud-Eintrag: Boxen ohne Bluetooth); MQTT-Box erst, wenn die Firmware ihre Bluetooth-Adresse gemeldet hat
+    if entry.data.get(CONF_CLOUD) or box_key(entry):
         setup_garden_entities(hass, entry, async_add_entities)
     if entry.data.get(CONF_CLOUD):
         return

@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .entity import GreenBoxEntity
-from .hub import CONF_ADDRESS, CONF_CLOUD, DOMAIN, Garden
+from .hub import CONF_CLOUD, DOMAIN, Garden, box_key
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
@@ -18,8 +18,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if not entry.data.get(CONF_CLOUD):
         device = hass.data[DOMAIN][entry.entry_id]
         entities = [GreenBoxBlink(device)]
-        if entry.data.get(CONF_ADDRESS):  # "Mit Cloud synchronisieren" gibt es nur für Bluetooth-Boxen (Garten-Feature)
-            entities.append(CloudSync(garden, device.address))
+        if box_key(entry):  # "Mit Cloud synchronisieren" gibt es nur für Boxen mit Bluetooth-Adresse (Garten-Feature)
+            entities.append(CloudSync(garden, box_key(entry)))
         async_add_entities(entities)
         return
     known: set[str] = set()

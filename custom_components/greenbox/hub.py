@@ -25,6 +25,7 @@ from .library import GardenError, Library
 
 DOMAIN = "greenbox"
 CONF_CLOUD = "cloud"  # Eintrag ist das (optionale) Cloud-Konto, keine Bluetooth-Box
+CONF_BLE_ADDRESS = "ble_address"  # MQTT-Box: vom Gerät gemeldete Bluetooth-Adresse (= Cloud-/Garten-Kennung der Box)
 CONF_MQTT_BASE = "mqtt_base"  # Eintrag ist eine Box über die Custom-Firmware-MQTT-Schnittstelle (keine Bluetooth-Box)
 CONF_API_KEY = "api_key"  # Firebase-API-Schlüssel der App (vom Nutzer eingetragen, siehe tools/extract_key.py)
 CONF_CANNABIS = "show_cannabis"
@@ -32,6 +33,12 @@ EVENT_HARVEST_READY = "greenbox_harvest_ready"  # Ereignis, wenn ein Topf ernter
 CATALOG_FILE = "greenbox_catalog.json"  # optional im Home-Assistant-Ordner (siehe tools/make_catalog.py)
 UPDATE_INTERVAL = timedelta(minutes=15)  # Cloud selten abfragen (inoffizielle API); lokale Änderungen wirken sofort
 _LOGGER = logging.getLogger(__name__)
+
+
+
+def box_key(entry: ConfigEntry) -> str | None:
+    """Kennung der Box im Garten/der Cloud: Bluetooth-Adresse (bei MQTT-Boxen die vom Gerät gemeldete)."""
+    return entry.data.get(CONF_ADDRESS) or entry.data.get(CONF_BLE_ADDRESS)
 
 
 class Garden:
@@ -203,7 +210,7 @@ class Garden:
 
     # --- Ansicht --------------------------------------------------------------------------------
     def ble_boxes(self) -> dict[str, str]:
-        return {e.data[CONF_ADDRESS]: (e.data.get(CONF_NAME) or e.title) for e in self.box_entries() if e.data.get(CONF_ADDRESS)}
+        return {box_key(e): (e.data.get(CONF_NAME) or e.title) for e in self.box_entries() if box_key(e)}
 
     def views(self) -> dict[str, dict[str, Any]]:
         now, ble = dt_util.utcnow(), self.ble_boxes()
@@ -323,9 +330,9 @@ class Garden:
 
     def keys_for(self, entry: ConfigEntry) -> list[str]:
         """Welche Gärten legt dieser Eintrag an? Bluetooth-Box: ihren eigenen. Cloud-Konto: nur Boxen, die keine
-        Bluetooth-Box haben. MQTT-Box: keiner (kein Bluetooth-Adresse -> kein Garten/Pflanzen-Tracking über MQTT)."""
+        Bluetooth-Box haben. MQTT-Box: ihren eigenen, sobald die Firmware ihre Bluetooth-Adresse gemeldet hat."""
         if not entry.data.get(CONF_CLOUD):
-            return [entry.data[CONF_ADDRESS]] if entry.data.get(CONF_ADDRESS) else []
+            return [box_key(entry)] if box_key(entry) else []
         ble = set(self.ble_boxes())
         return [k for k in (self.coordinator.data or {}) if k not in ble]
 
