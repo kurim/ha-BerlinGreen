@@ -272,6 +272,24 @@ async def main():
     fresh._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
     check(h.events == [], "beim Start wird nur der Stand gemerkt")
 
+    print("Geräte aus früheren Läufen")
+    Any = type("Any", (type,), {"__getattr__": lambda c, n: n})
+    _stubs.mod("homeassistant.components.sensor", SensorDeviceClass=Any("D", (), {}), SensorEntity=object, SensorStateClass=Any("S", (), {}))
+
+    class Dev:
+        def __init__(self, i, ident): self.id, self.identifiers = i, {("greenbox", ident)}
+
+    class Reg:
+        def __init__(self, devs): self.devs, self.removed = devs, []
+        def async_update_device(self, dev_id, remove_config_entry_id): self.removed.append(dev_id)
+        def async_get_device(self, identifiers): return None
+    reg = Reg([Dev("hub", ce.entry_id), Dev("alt", "99999999-0000-0000-0000-000000000000"), Dev("neu", CLOUD_ONLY)])
+    dr = sys.modules["homeassistant.helpers.device_registry"]
+    dr.async_get, dr.async_entries_for_config_entry = (lambda hass: reg), (lambda r, eid: r.devs)
+    gs = importlib.import_module("greenbox.garden_sensor")
+    gs.setup_garden_entities(h, ce, lambda ents: None)
+    check(reg.removed == ["alt"], "Gerät einer nicht mehr vorhandenen Cloud-Box wird entfernt, Hub-Gerät und vorhandene Boxen bleiben")
+
     print("Sensor Wasser knapp")
     _stubs.mod("homeassistant.components.binary_sensor", BinarySensorDeviceClass=_t.SimpleNamespace(PROBLEM="problem"), BinarySensorEntity=object)
     bsm = importlib.import_module("greenbox.binary_sensor")

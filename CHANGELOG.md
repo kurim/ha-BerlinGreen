@@ -12,6 +12,7 @@ Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notab
   registrations use a UUID instead of the Bluetooth address, so they cannot be matched automatically).
 
 ### Fixed
+- Verwaiste Cloud-Geräte (Box in der Cloud nicht mehr vorhanden oder einer Box zugeordnet) werden jetzt auch dann entfernt, wenn sie aus einem früheren Lauf stammen. Vorher blieben sie nach einem Neustart stehen. / Orphaned cloud devices from earlier runs are now removed too.
 - „Neu konfigurieren“ des Cloud-Kontos brach mit `TypeError: a coroutine was expected, got None` ab; der Update-Listener ist jetzt eine Coroutine. Betraf jede Änderung am Eintrag. / Reconfiguring the cloud account failed with a TypeError; the update listener is now a coroutine.
 - MQTT-Boxen mit bekannter Bluetooth-Adresse teilen ihr Gerät mit dem Garten (kein zweites Gerät mehr). / MQTT boxes with a known
   Bluetooth address share their device with the garden.
