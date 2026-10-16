@@ -3,6 +3,18 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notable changes are listed here.
 
+## [2026.10.2] - 2026-10-16
+
+### Added
+- Cloud-Box von Hand zuordnen: In den Optionen einer Box (Zahnrad) lässt sich die zugehörige Cloud-Box wählen. Nötig, wenn die
+  Box in der App mit einer UUID statt der Bluetooth-Adresse registriert ist (iOS), denn dann kann sie nicht automatisch
+  zugeordnet werden. Die Cloud-Box gehört danach zum Gerät der Box. / Match a cloud box by hand in a box's options (iOS
+  registrations use a UUID instead of the Bluetooth address, so they cannot be matched automatically).
+
+### Fixed
+- MQTT-Boxen mit bekannter Bluetooth-Adresse teilen ihr Gerät mit dem Garten (kein zweites Gerät mehr). / MQTT boxes with a known
+  Bluetooth address share their device with the garden.
+
 ## [2026.10.1] - 2026-10-16
 
 ### Changed

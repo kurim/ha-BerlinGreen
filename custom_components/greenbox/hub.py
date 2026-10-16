@@ -29,6 +29,7 @@ CONF_BLE_ADDRESS = "ble_address"  # MQTT-Box: vom Gerät gemeldete Bluetooth-Adr
 CONF_MQTT_BASE = "mqtt_base"  # Eintrag ist eine Box über die Custom-Firmware-MQTT-Schnittstelle (keine Bluetooth-Box)
 CONF_API_KEY = "api_key"  # Firebase-API-Schlüssel der App (vom Nutzer eingetragen, siehe tools/extract_key.py)
 CONF_CANNABIS = "show_cannabis"
+CONF_CLOUD_BOX = "cloud_box"  # Option einer Box: Kennung der zugehörigen Cloud-Box (wenn sie nicht die Bluetooth-Adresse ist, z. B. iOS-UUID)
 EVENT_HARVEST_READY = "greenbox_harvest_ready"  # Ereignis, wenn ein Topf erntereif wird (für Benachrichtigungen)
 CATALOG_FILE = "greenbox_catalog.json"  # optional im Home-Assistant-Ordner (siehe tools/make_catalog.py)
 UPDATE_INTERVAL = timedelta(minutes=15)  # Cloud selten abfragen (inoffizielle API); lokale Änderungen wirken sofort
@@ -57,6 +58,7 @@ class Garden:
         self._photo_task: asyncio.Task | None = None
         self.cloud: GreenboxCloud | None = None
         self.raw_cloud: dict[str, dict] = {}
+        self._cloud_boxes: dict[str, dict] | None = None  # Cloud-Boxen unter ihrer Cloud-Kennung (raw_cloud: unter der Kennung der Box in HA)
         self.cloud_fresh = False  # letzter Cloud-Abruf war erfolgreich (erst dann gilt "nicht in der Cloud" = entfernt)
         self._reauth_started = False
         self._boxes: set[str] = set()
@@ -148,7 +150,7 @@ class Garden:
         token = entry.data.get("refresh_token") if entry else None
         key = entry.data.get(CONF_API_KEY) if entry else None
         if not token or not key:
-            self.cloud, self.raw_cloud, self.cloud_fresh = None, {}, False
+            self.cloud, self.raw_cloud, self._cloud_boxes, self.cloud_fresh = None, {}, None, False
             if entry and token and not key and not self._reauth_started:
                 # Eintrag aus Version 0.5.0: der API-Schlüssel wird jetzt abgefragt
                 self._reauth_started = True
@@ -158,6 +160,7 @@ class Garden:
             self.cloud = GreenboxCloud(async_get_clientsession(self.hass), token, key)
             self._reauth_started = False
         self.lib.allow_cannabis = any(e.options.get(CONF_CANNABIS) for e in self.box_entries())
+        self._set_cloud_boxes(self._cloud_boxes)  # Zuordnungen (Option „Cloud-Box“) können sich geändert haben
 
     @property
     def language(self) -> str:
@@ -169,7 +172,7 @@ class Garden:
         if self.cloud and entry:
             try:
                 raw = await self.cloud.fetch()
-                self.raw_cloud = {b["box_id"]: b for b in raw.get("box", [])}
+                self._set_cloud_boxes({b["box_id"]: b for b in raw.get("box", [])})
                 self.cloud_fresh = True
                 if self.cloud.refresh_token != entry.data.get("refresh_token"):  # Google kann das Token erneuern
                     self.hass.config_entries.async_update_entry(entry, data={**entry.data, "refresh_token": self.cloud.refresh_token})
@@ -211,6 +214,24 @@ class Garden:
         for k in sorted(set(ready) - previous):
             if k[0] in known:  # eine Box, die erst jetzt auftaucht (z. B. Cloud war beim Start offline), meldet ihren Bestand nicht
                 self.hass.bus.async_fire(EVENT_HARVEST_READY, ready[k])
+
+    def _set_cloud_boxes(self, boxes: dict[str, dict] | None) -> None:
+        """Cloud-Boxen merken und unter der Kennung ablegen, die HA für die Box nutzt: meist gleich (Bluetooth-Adresse =
+        Cloud-Kennung), sonst nach der Option „Cloud-Box“ (iOS-Registrierungen haben eine UUID statt der Adresse)."""
+        if boxes is None:
+            return
+        self._cloud_boxes = boxes
+        out = dict(boxes)
+        for e in self.box_entries():
+            cloud_id, key = e.options.get(CONF_CLOUD_BOX), box_key(e)
+            if cloud_id and key and key != cloud_id and cloud_id in out and key not in out:
+                out[key] = out.pop(cloud_id)
+        self.raw_cloud = out
+
+    def cloud_choices(self, entry: ConfigEntry) -> dict[str, str]:
+        """Cloud-Boxen, die dieser Eintrag sich zuordnen kann: nicht schon einer anderen Box (Adresse oder Option) zugeordnet."""
+        taken = {k for e in self.box_entries() if e is not entry for k in (box_key(e), e.options.get(CONF_CLOUD_BOX)) if k}
+        return {cid: f"{b.get('name') or 'GreenBox'} ({cid[-5:]})" for cid, b in (self._cloud_boxes or {}).items() if cid not in taken}
 
     # --- Ansicht --------------------------------------------------------------------------------
     def ble_boxes(self) -> dict[str, str]:
@@ -334,7 +355,7 @@ class Garden:
             raise GardenError(f"Anmeldung abgelehnt: {err}") from err
         except ApiError as err:
             raise GardenError(f"Die Cloud hat die Änderung nicht angenommen: {err}") from err
-        self.raw_cloud = {b["box_id"]: b for b in fresh.get("box", [])}
+        self._set_cloud_boxes({b["box_id"]: b for b in fresh.get("box", [])})
         self.refresh()
 
     def keys_for(self, entry: ConfigEntry) -> list[str]:

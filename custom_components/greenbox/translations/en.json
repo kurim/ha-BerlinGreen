@@ -207,7 +207,8 @@
       "init": {
         "title": "Options",
         "data": {
-          "show_cannabis": "Show cannabis mix and plants (adults only)"
+          "show_cannabis": "Show cannabis mix and plants (adults only)",
+          "cloud_box": "Matching cloud box (only needed if the cloud does not match it by itself)"
         }
       }
     },

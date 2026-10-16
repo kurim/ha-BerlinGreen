@@ -11,7 +11,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import ApiError, ApiKeyError, AuthError, sign_in, valid_key_format
-from .hub import CONF_API_KEY, CONF_BLE_ADDRESS, CONF_CANNABIS, CONF_CLOUD, CONF_MQTT_BASE
+from .hub import CONF_API_KEY, CONF_BLE_ADDRESS, CONF_CANNABIS, CONF_CLOUD, CONF_CLOUD_BOX, CONF_MQTT_BASE
 
 DOMAIN = "greenbox"
 PREFIX = "GreenBox"
@@ -174,6 +174,15 @@ class GreenBoxOptions(OptionsFlow):
         if self.config_entry.data.get(CONF_CLOUD):
             return self.async_abort(reason="no_options")
         if user_input is not None:
+            if not user_input.get(CONF_CLOUD_BOX):
+                user_input.pop(CONF_CLOUD_BOX, None)
             return self.async_create_entry(data=user_input)
-        return self.async_show_form(step_id="init", data_schema=vol.Schema(
-            {vol.Optional(CONF_CANNABIS, default=self.config_entry.options.get(CONF_CANNABIS, False)): bool}))
+        schema: dict[Any, Any] = {vol.Optional(CONF_CANNABIS, default=self.config_entry.options.get(CONF_CANNABIS, False)): bool}
+        garden = self.hass.data.get(DOMAIN, {}).get("_garden")
+        choices = garden.cloud_choices(self.config_entry) if garden else {}
+        current = self.config_entry.options.get(CONF_CLOUD_BOX)
+        if choices or current:
+            # Cloud-Box von Hand zuordnen (iOS-Registrierungen haben eine UUID statt der Bluetooth-Adresse, das lässt sich nicht automatisch zuordnen)
+            options = {"": "–", **({current: current} if current and current not in choices else {}), **choices}
+            schema[vol.Optional(CONF_CLOUD_BOX, default=current or "")] = vol.In(options)
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(schema))

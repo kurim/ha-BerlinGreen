@@ -207,7 +207,8 @@
       "init": {
         "title": "Optionen",
         "data": {
-          "show_cannabis": "Cannabis-Mix und -Pflanzen anzeigen (nur für Volljährige)"
+          "show_cannabis": "Cannabis-Mix und -Pflanzen anzeigen (nur für Volljährige)",
+          "cloud_box": "Zugehörige Cloud-Box (nur nötig, wenn die Cloud sie nicht von selbst zuordnet)"
         }
       }
     },
