@@ -129,6 +129,11 @@ async def _get_garden(hass: HomeAssistant) -> Garden:
         return garden
 
 
+async def _reload_on_update(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Update-Listener müssen Coroutinen sein (HA legt sie als Task an), sonst scheitert z. B. „Neu konfigurieren“."""
+    hass.config_entries.async_schedule_reload(entry.entry_id)
+
+
 @callback
 def _dismiss_discovery(hass: HomeAssistant, address: str | None) -> None:
     """Offene „Entdeckt“-Karte dieser Box schließen (sie ist als MQTT-Box schon eingerichtet)."""
@@ -167,7 +172,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         garden.refresh()
         platforms = BOX_PLATFORMS
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
-    entry.async_on_unload(entry.add_update_listener(lambda h, e: h.config_entries.async_schedule_reload(e.entry_id)))
+    entry.async_on_unload(entry.add_update_listener(_reload_on_update))
     return True
 
 
