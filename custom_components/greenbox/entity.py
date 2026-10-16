@@ -17,7 +17,7 @@ class GreenBoxEntity(Entity):
         self._attr_unique_id = f"{device.address}_{key}"
         st = device.state
         self._attr_device_info = DeviceInfo(
-            identifiers={("greenbox", device.address)},
+            identifiers={("greenbox", device.address), *({("greenbox", ble)} if (ble := getattr(device, "ble_address", None)) else set())},
             name=device.name,
             manufacturer="Berlin Green",
             model="GreenBox",

@@ -199,6 +199,15 @@ async def main():
     await g.coordinator.async_refresh()
     check(CLOUD_ONLY in g.coordinator.data, "taucht sie in der Cloud wieder auf, ist sie wieder da")
     check(g.coordinator.data[MAC1]["source"] == "local" and g.coordinator.data[CLOUD_ONLY]["source"] == "cloud" and g.coordinator.data[CLOUD_ONLY]["ble"] is False, "lokale Bepflanzung hat Vorrang, Cloud-Box ohne Bluetooth zeigt den Cloud-Stand")
+    check(set(g.cloud_choices(e2)) == {CLOUD_ONLY}, "Zuordnung von Hand: angeboten wird nur die Cloud-Box, die keiner Box gehört")
+    e2.options["cloud_box"] = CLOUD_ONLY  # z. B. iOS-Registrierung: Cloud-Kennung ist eine UUID, nicht die Bluetooth-Adresse
+    g.configure(); g.refresh()
+    check(MAC2 in g.raw_cloud and CLOUD_ONLY not in g.raw_cloud and g.keys_for(ce) == [] and g.coordinator.data[MAC2]["ble"] is True and CLOUD_ONLY not in g.coordinator.data,
+          "von Hand zugeordnete Cloud-Box gehört zur Box (kein eigenes Cloud-Gerät mehr)")
+    check(g.raw_cloud[MAC2]["box_id"] == CLOUD_ONLY, "Cloud-Daten bleiben unverändert (Schreiben geht an die echte Cloud-Kennung)")
+    del e2.options["cloud_box"]
+    g.configure(); g.refresh()
+    check(CLOUD_ONLY in g.raw_cloud and MAC2 not in g.raw_cloud, "Zuordnung entfernen: die Cloud-Box steht wieder für sich")
     check(h.config_entries.updated and h.config_entries.updated[-1]["refresh_token"] == "ROTATED", "erneuertes Token landet im Cloud-Eintrag")
     print("Garten aus der Cloud übernehmen (Button)")
     import types as _t
@@ -262,6 +271,24 @@ async def main():
     fresh = hub.Garden(h)
     fresh._detect_harvest({"K": {"name": "Kiste", "slots": [{"slot": 0, "phase": "harvest", "plant": "Basilikum"}], "microgreens": []}})
     check(h.events == [], "beim Start wird nur der Stand gemerkt")
+
+    print("Geräte aus früheren Läufen")
+    Any = type("Any", (type,), {"__getattr__": lambda c, n: n})
+    _stubs.mod("homeassistant.components.sensor", SensorDeviceClass=Any("D", (), {}), SensorEntity=object, SensorStateClass=Any("S", (), {}))
+
+    class Dev:
+        def __init__(self, i, ident): self.id, self.identifiers = i, {("greenbox", ident)}
+
+    class Reg:
+        def __init__(self, devs): self.devs, self.removed = devs, []
+        def async_update_device(self, dev_id, remove_config_entry_id): self.removed.append(dev_id)
+        def async_get_device(self, identifiers): return None
+    reg = Reg([Dev("hub", ce.entry_id), Dev("alt", "99999999-0000-0000-0000-000000000000"), Dev("neu", CLOUD_ONLY)])
+    dr = sys.modules["homeassistant.helpers.device_registry"]
+    dr.async_get, dr.async_entries_for_config_entry = (lambda hass: reg), (lambda r, eid: r.devs)
+    gs = importlib.import_module("greenbox.garden_sensor")
+    gs.setup_garden_entities(h, ce, lambda ents: None)
+    check(reg.removed == ["alt"], "Gerät einer nicht mehr vorhandenen Cloud-Box wird entfernt, Hub-Gerät und vorhandene Boxen bleiben")
 
     print("Sensor Wasser knapp")
     _stubs.mod("homeassistant.components.binary_sensor", BinarySensorDeviceClass=_t.SimpleNamespace(PROBLEM="problem"), BinarySensorEntity=object)

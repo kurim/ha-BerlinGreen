@@ -159,9 +159,14 @@ async def main():
     check((await f.async_step_reauth_confirm({"password": "x", "api_key": K}))["errors"] == {"base": "invalid_auth"}, "Neuanmeldung mit falschem Passwort")
     f.reauth = E("x", {"address": "A"})
     check((await f.async_step_reconfigure())["reason"] == "reconfigure_not_supported", "Bluetooth-Eintrag lässt sich nicht als Cloud-Konto neu konfigurieren")
-    o = cf.GreenBoxOptions(); o.config_entry = E("x", {"address": "A"}, {"show_cannabis": True})
+    class Garden:
+        @staticmethod
+        def cloud_choices(entry): return {"cid-1": "Box (cid-1)"}
+    o = cf.GreenBoxOptions(); o.config_entry = E("x", {"address": "A"}, {"show_cannabis": True}); o.hass = type("H", (), {"data": {"greenbox": {"_garden": Garden}}})()
     r = await o.async_step_init()
     check(r["type"] == "form" and list(r["schema"].schema)[0].default() is True and (await o.async_step_init({"show_cannabis": False}))["data"] == {"show_cannabis": False}, "Optionen einer Box: Cannabis anzeigen")
+    check(len(r["schema"].schema) == 2 and (await o.async_step_init({"show_cannabis": False, "cloud_box": "cid-1"}))["data"] == {"show_cannabis": False, "cloud_box": "cid-1"}
+          and (await o.async_step_init({"show_cannabis": False, "cloud_box": ""}))["data"] == {"show_cannabis": False}, "Optionen einer Box: Cloud-Box von Hand zuordnen (leer = keine)")
     o.config_entry = E("c", {"cloud": True})
     check((await o.async_step_init())["reason"] == "no_options", "Cloud-Eintrag hat keine Optionen")
     print("\n" + ("%d FEHLER" % fails if fails else "alle Tests ok"))

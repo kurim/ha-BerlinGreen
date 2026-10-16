@@ -10,7 +10,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .garden import PHASES
-from .hub import DOMAIN, Garden
+from .hub import CONF_CLOUD, DOMAIN, Garden
 
 SUMMARY_ATTRS = ("name", "box_key", "source", "type", "layout", "mix", "mix_id", "schedule", "has_package", "harvest_ready",
                  "microgreens_planted", "microgreens_ready", "mushrooms", "mushrooms_planted", "mushrooms_ready", "slots", "microgreens", "microgreen_modules",
@@ -42,6 +42,13 @@ def setup_garden_entities(hass: HomeAssistant, entry: ConfigEntry, async_add_ent
             for box_id in gone:
                 known.discard(box_id)
                 if device := registry.async_get_device(identifiers={(DOMAIN, box_id)}):
+                    registry.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
+        if entry.data.get(CONF_CLOUD) and garden.cloud_fresh:
+            # Geräte aus früheren Läufen (Box inzwischen aus der Cloud entfernt oder einer Box zugeordnet): `known` kennt sie nicht
+            registry = dr.async_get(hass)
+            keep = {entry.entry_id, *garden.keys_for(entry)}
+            for device in dr.async_entries_for_config_entry(registry, entry.entry_id):
+                if not any(domain == DOMAIN and ident in keep for domain, ident in device.identifiers):
                     registry.async_update_device(device.id, remove_config_entry_id=entry.entry_id)
 
     add_new()
