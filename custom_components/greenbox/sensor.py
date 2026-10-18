@@ -1,4 +1,4 @@
-"""Sensoren: Wasserstand (Prozent + Status), Firmware, Hardware-Revision, Temperatur (falls gültig)."""
+"""Sensoren: Wasserstand (Prozent + Status), Firmware, Hardware-Revision, Temperatur (falls gültig), Taster-Rohwerte (nur MQTT)."""
 from __future__ import annotations
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
@@ -23,6 +23,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     async_add_entities(
         [GreenBoxWater(d), GreenBoxWaterStatus(d), GreenBoxFirmware(d), GreenBoxHardware(d), GreenBoxTemperature(d)]
     )
+    if not getattr(d, "uses_bluetooth", True):  # Taster-Rohwerte liefert nur die Custom-Firmware (MQTT)
+        async_add_entities([GreenBoxButtonTouch(d), GreenBoxButtonBaseline(d)])
 
 
 class GreenBoxWater(GreenBoxEntity, SensorEntity):
@@ -89,3 +91,33 @@ class GreenBoxTemperature(GreenBoxEntity, SensorEntity):
     @property
     def native_value(self) -> int | None:
         return self._device.state.temperature_c
+
+
+class GreenBoxButtonTouch(GreenBoxEntity, SensorEntity):
+    """Rohwert des Touch-Tasters (IO12): niedrig = berührt. Im Verlauf sieht man, ob spontane Auslösungen vom Taster kommen."""
+
+    _attr_translation_key = "button_touch"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, device) -> None:
+        super().__init__(device, "button_touch")
+
+    @property
+    def native_value(self) -> int | None:
+        return self._device.state.touch_button
+
+
+class GreenBoxButtonBaseline(GreenBoxEntity, SensorEntity):
+    """Nachlaufende Baseline des Tasters; die Firmware löst aus, wenn der Rohwert unter Baseline minus Schwelle fällt."""
+
+    _attr_translation_key = "button_baseline"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, device) -> None:
+        super().__init__(device, "button_baseline")
+
+    @property
+    def native_value(self) -> int | None:
+        return self._device.state.touch_base

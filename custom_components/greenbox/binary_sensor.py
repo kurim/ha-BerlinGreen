@@ -11,7 +11,11 @@ from .protocol import water_status
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
-    async_add_entities([GreenBoxWaterLow(hass.data["greenbox"][entry.entry_id])])
+    d = hass.data["greenbox"][entry.entry_id]
+    entities = [GreenBoxWaterLow(d)]
+    if not getattr(d, "uses_bluetooth", True):  # Taster-Zustand liefert nur die Custom-Firmware (MQTT)
+        entities.append(GreenBoxButtonPressed(d))
+    async_add_entities(entities)
 
 
 class GreenBoxWaterLow(GreenBoxEntity, BinarySensorEntity):
@@ -29,3 +33,16 @@ class GreenBoxWaterLow(GreenBoxEntity, BinarySensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, str | None]:
         return {"status": water_status(self._device.state.water)}  # ok | low | empty
+
+
+class GreenBoxButtonPressed(GreenBoxEntity, BinarySensorEntity):
+    """An, solange die Firmware den Touch-Taster als berührt erkennt."""
+
+    _attr_translation_key = "button_pressed"
+
+    def __init__(self, device) -> None:
+        super().__init__(device, "button_pressed")
+
+    @property
+    def is_on(self) -> bool | None:
+        return self._device.state.button_pressed

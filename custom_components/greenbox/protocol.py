@@ -265,6 +265,9 @@ class BoxState:
     duration_weekend: int | None = None
     blink_on_low_water: bool | None = None
     box_type: str | None = None
+    touch_button: int | None = None  # Roh-Touchwert des Tasters (nur MQTT); niedrig = berührt
+    touch_base: int | None = None  # nachlaufende Baseline des Tasters (nur MQTT)
+    button_pressed: bool | None = None  # nur MQTT
     firmware_version: str | None = None  # echte Versionsnummer der Custom-Firmware (nur MQTT); firmware = Kompatibilitätsbyte
 
     def apply(self, type_byte: int, data: bytes) -> bool:
