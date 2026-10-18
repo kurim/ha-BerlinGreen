@@ -21,9 +21,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         return
     d = hass.data["greenbox"][entry.entry_id]
     async_add_entities(
-        [GreenBoxWater(d), GreenBoxWaterStatus(d), GreenBoxFirmware(d), GreenBoxHardware(d), GreenBoxTemperature(d)]
+        [GreenBoxWater(d), GreenBoxWaterStatus(d), GreenBoxFirmware(d), GreenBoxTemperature(d)]
     )
-    if not getattr(d, "uses_bluetooth", True):  # Taster-Rohwerte liefert nur die Custom-Firmware (MQTT)
+    if getattr(d, "uses_bluetooth", True):  # Hardware-Revision kommt nur von der Original-Firmware (BLE-Typ 'r'), nicht über MQTT
+        async_add_entities([GreenBoxHardware(d)])
+    else:  # Taster-Rohwerte liefert nur die Custom-Firmware (MQTT)
         async_add_entities([GreenBoxButtonTouch(d), GreenBoxButtonBaseline(d)])
 
 
