@@ -8,6 +8,9 @@ Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notab
 ### Added
 - MQTT-Boxen: Sensoren **Taster Rohwert** und **Taster Baseline** (Diagnose, mit Verlauf) sowie Binärsensor **Taster berührt**. So lässt sich im Verlauf prüfen, ob ein spontanes „An“ im Lichtmodus vom Touch-Taster kommt. Braucht eine Firmware, die den Tasterwert bei Änderung meldet (BerlinGreen-FW nach 2026.10.0). / MQTT boxes get button raw value, baseline and pressed sensors.
 
+### Changed 
+- Zu BerlinGreen GreenBox umbennant
+
 ## [2026.10.2] - 2026-10-16
 
 ### Added
