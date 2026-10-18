@@ -3,7 +3,7 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notable changes are listed here.
 
-## [Unreleased]
+## [2026.10.3] - 2026-10-18
 
 ### Added
 - MQTT-Boxen: Sensoren **Taster Rohwert** und **Taster Baseline** (Diagnose, mit Verlauf) sowie Binärsensor **Taster berührt**. So lässt sich im Verlauf prüfen, ob ein spontanes „An“ im Lichtmodus vom Touch-Taster kommt. Braucht eine Firmware, die den Tasterwert bei Änderung meldet (BerlinGreen-FW nach 2026.10.0). / MQTT boxes get button raw value, baseline and pressed sensors.
