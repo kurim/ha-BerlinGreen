@@ -167,6 +167,12 @@
           "harvest": "Harvest",
           "complete": "Complete"
         }
+      },
+      "button_touch": {
+        "name": "Button raw value"
+      },
+      "button_baseline": {
+        "name": "Button baseline"
       }
     },
     "switch": {
@@ -199,6 +205,9 @@
     "binary_sensor": {
       "water_low": {
         "name": "Water low"
+      },
+      "button_pressed": {
+        "name": "Button pressed"
       }
     }
   },

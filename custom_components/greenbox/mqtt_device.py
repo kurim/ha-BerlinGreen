@@ -129,6 +129,10 @@ class GreenBoxMqttDevice:
         st.duration_workdays = data.get("duration")
         st.duration_weekend = data.get("duration_weekend")
         st.blink_on_low_water = data.get("blink_on_low_water")
+        touch = data.get("touch")
+        st.touch_button = touch[3] if isinstance(touch, list) and len(touch) > 3 else st.touch_button  # Firmware sendet das Array nur alle 60 s oder bei Änderung des Tasterwerts
+        st.touch_base = data.get("touch_base")
+        st.button_pressed = data.get("button_pressed")
         light = light_from_strips(st.strips)
         if light and light[1] is not None:
             self.temp_idx = light[1]

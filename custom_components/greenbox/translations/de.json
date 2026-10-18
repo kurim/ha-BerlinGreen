@@ -167,6 +167,12 @@
           "harvest": "Ernte",
           "complete": "Abgeschlossen"
         }
+      },
+      "button_touch": {
+        "name": "Taster Rohwert"
+      },
+      "button_baseline": {
+        "name": "Taster Baseline"
       }
     },
     "switch": {
@@ -199,6 +205,9 @@
     "binary_sensor": {
       "water_low": {
         "name": "Wasser knapp"
+      },
+      "button_pressed": {
+        "name": "Taster berührt"
       }
     }
   },
