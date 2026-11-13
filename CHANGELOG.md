@@ -3,6 +3,11 @@
 Alle wichtigen Änderungen stehen hier. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notable changes are listed here.
 
+## [Unreleased]
+
+### Added
+- MQTT-Boxen: Sensor **Leistung (geschätzt)** (W, `device_class: power`) aus dem Firmware-Feld `power`. Braucht BerlinGreen-FW mit der Leistungsschätzung. / MQTT boxes get an estimated power sensor (needs matching firmware).
+
 ## [2026.10.3] - 2026-10-18
 
 ### Added
