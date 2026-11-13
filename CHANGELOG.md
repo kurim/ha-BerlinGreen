@@ -5,6 +5,8 @@ Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notab
 
 ## [Unreleased]
 
+## [2026.11.1] - 2026-11-13
+
 ### Added
 - MQTT-Boxen: Sensor **Energie (geschätzt)** (kWh, `total_increasing`, für das Energie-Dashboard): Summe der geschätzten Leistung über die Zeit, übersteht Neustarts. Abweichung durch Schätzung und Meldeintervall. / Estimated energy sensor (kWh).
 
