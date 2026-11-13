@@ -5,6 +5,8 @@ Versionen als `JAHR.MONAT.PATCH` (wie Home Assistant; davor SemVer). / All notab
 
 ## [Unreleased]
 
+## [2026.11.0] - 2026-11-13
+
 ### Added
 - MQTT-Boxen: Sensor **Leistung (geschätzt)** (W, `device_class: power`) aus dem Firmware-Feld `power`. Braucht BerlinGreen-FW mit der Leistungsschätzung. / MQTT boxes get an estimated power sensor (needs matching firmware).
 
