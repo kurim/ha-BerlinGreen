@@ -131,6 +131,9 @@
       "power": {
         "name": "Leistung (geschätzt)"
       },
+      "energy": {
+        "name": "Energie (geschätzt)"
+      },
       "water_level": {
         "name": "Wasserstand"
       },

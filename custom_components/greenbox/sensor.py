@@ -1,10 +1,12 @@
 """Sensoren: Wasserstand (Prozent + Status), Firmware, Hardware-Revision, Temperatur (falls gültig), Taster-Rohwerte (nur MQTT)."""
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from time import monotonic
+
+from homeassistant.components.sensor import RestoreSensor, SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfPower, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfEnergy, UnitOfPower, UnitOfTemperature
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .entity import GreenBoxEntity
@@ -26,7 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if getattr(d, "uses_bluetooth", True):  # Hardware-Revision kommt nur von der Original-Firmware (BLE-Typ 'r'), nicht über MQTT
         async_add_entities([GreenBoxHardware(d)])
     else:  # Taster-Rohwerte liefert nur die Custom-Firmware (MQTT)
-        async_add_entities([GreenBoxPower(d), GreenBoxButtonTouch(d), GreenBoxButtonBaseline(d)])
+        async_add_entities([GreenBoxPower(d), GreenBoxEnergy(d), GreenBoxButtonTouch(d), GreenBoxButtonBaseline(d)])
 
 
 class GreenBoxWater(GreenBoxEntity, SensorEntity):
@@ -110,6 +112,40 @@ class GreenBoxPower(GreenBoxEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         return self._device.state.power
+
+
+class GreenBoxEnergy(GreenBoxEntity, RestoreSensor):
+    """Energie in kWh: Summe aus der geschätzten Leistung (zuletzt gemeldeter Wert gilt bis zur nächsten Meldung)."""
+
+    _attr_translation_key = "energy"
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_suggested_display_precision = 3
+
+    def __init__(self, device) -> None:
+        super().__init__(device, "energy")
+        self._kwh = 0.0
+        self._last: float | None = None  # monotonic-Zeit der letzten Integration
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        if (last := await self.async_get_last_sensor_data()) and last.native_value is not None:
+            self._kwh = float(last.native_value)
+
+    @callback
+    def _handle_update(self) -> None:
+        now = monotonic()
+        power = self._device.state.power
+        # shortcut: Rechteckregel über das Meldeintervall (Firmware meldet Änderungen sofort, sonst alle 60 s)
+        if self._last is not None and power is not None:
+            self._kwh += power * (now - self._last) / 3_600_000
+        self._last = now
+        super()._handle_update()
+
+    @property
+    def native_value(self) -> float:
+        return round(self._kwh, 4)
 
 
 class GreenBoxButtonTouch(GreenBoxEntity, SensorEntity):

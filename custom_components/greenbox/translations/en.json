@@ -131,6 +131,9 @@
       "power": {
         "name": "Power (estimated)"
       },
+      "energy": {
+        "name": "Energy (estimated)"
+      },
       "water_level": {
         "name": "Water level"
       },
