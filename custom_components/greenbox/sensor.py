@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfPower, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -26,7 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     if getattr(d, "uses_bluetooth", True):  # Hardware-Revision kommt nur von der Original-Firmware (BLE-Typ 'r'), nicht über MQTT
         async_add_entities([GreenBoxHardware(d)])
     else:  # Taster-Rohwerte liefert nur die Custom-Firmware (MQTT)
-        async_add_entities([GreenBoxButtonTouch(d), GreenBoxButtonBaseline(d)])
+        async_add_entities([GreenBoxPower(d), GreenBoxButtonTouch(d), GreenBoxButtonBaseline(d)])
 
 
 class GreenBoxWater(GreenBoxEntity, SensorEntity):
@@ -93,6 +93,23 @@ class GreenBoxTemperature(GreenBoxEntity, SensorEntity):
     @property
     def native_value(self) -> int | None:
         return self._device.state.temperature_c
+
+
+class GreenBoxPower(GreenBoxEntity, SensorEntity):
+    """Geschätzte Leistungsaufnahme aus den Streifenwerten (Messreihe in BerlinGreen-FW), keine Messung."""
+
+    _attr_translation_key = "power"
+    _attr_device_class = SensorDeviceClass.POWER
+    _attr_native_unit_of_measurement = UnitOfPower.WATT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, device) -> None:
+        super().__init__(device, "power")
+
+    @property
+    def native_value(self) -> float | None:
+        return self._device.state.power
 
 
 class GreenBoxButtonTouch(GreenBoxEntity, SensorEntity):
